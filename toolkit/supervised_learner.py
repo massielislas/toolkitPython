@@ -54,7 +54,9 @@ class SupervisedLearner:
             for i in range(features.rows):
                 feat = features.row(i)
                 targ = labels.row(i)
-                pred[0] = 0.0       # make sure the prediction is not biased by a previous prediction
+                
+                if len(labels > 0):
+                    del labels[:]
                 self.predict(feat, pred)
                 delta = targ[0] - pred[0]
                 sse += delta**2
