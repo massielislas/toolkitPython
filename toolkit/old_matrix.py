@@ -2,8 +2,26 @@ from __future__ import (absolute_import, division, print_function, unicode_liter
 
 import random
 import numpy as np
-from scipy import stats
 import re
+
+def mode(a, axis=0):
+# taken from scipy code
+# https://github.com/scipy/scipy/blob/master/scipy/stats/stats.py#L609
+    scores = np.unique(np.ravel(a))       # get ALL unique values
+    testshape = list(a.shape)
+    testshape[axis] = 1
+    oldmostfreq = np.zeros(testshape)
+    oldcounts = np.zeros(testshape)
+
+    for score in scores:
+        template = (a == score)
+        counts = np.expand_dims(np.sum(template, axis),axis)
+        mostfrequent = np.where(counts > oldcounts, score, oldmostfreq)
+        oldcounts = np.maximum(counts, oldcounts)
+        oldmostfreq = mostfrequent
+
+    return mostfrequent, oldcounts
+
 
 class Matrix:
 
@@ -16,55 +34,55 @@ class Matrix:
     order for numpy array functions to work properly. (The load_arff
     function ensures that all values are read as floats.)
     """
+
+    data = []
+    attr_names = []
+    str_to_enum = []       # array of dictionaries
+    enum_to_str = []       # array of dictionaries
+    dataset_name = "Untitled"
+    MISSING = float("infinity")
+
     def __init__(self, matrix=None, row_start=None, col_start=None, row_count=None, col_count=None, arff=None):
         """
         If matrix is provided, all parameters must be provided, and the new matrix will be
         initialized with the specified portion of the provided matrix.
         """
-        self.data = None
-        self.attr_names = []
-        self.str_to_enum = []       # array of dictionaries
-        self.enum_to_str = []       # array of dictionaries
-        self.dataset_name = "Untitled"
-        self.MISSING = float("infinity")
-
         if arff:
             self.load_arff(arff)
         elif matrix:
             self.init_from(matrix, row_start, col_start, row_count, col_count)
-        else:
-            pass
-            # Confusion matrix needs to be initialized but have nothing in it
-        
+
     def init_from(self, matrix, row_start, col_start, row_count, col_count):
         """Initialize the matrix with a portion of another matrix"""
-        self.data = matrix.data[row_start:row_start+row_count, col_start:col_start+col_count]
+        self.data = [matrix.data[row][col_start:col_start+col_count] for row in range(row_start, row_start+row_count)]
         self.attr_names = matrix.attr_names[col_start:col_start+col_count]
-        self.str_to_enum = matrix.str_to_enum[col_start:col_start+col_count]
-        self.enum_to_str = matrix.enum_to_str[col_start:col_start+col_count]
+        self.str_to_enum = matrix.str_to_enum[col_start:col_start+col_count]    # array of dictionaries
+        self.enum_to_str = matrix.enum_to_str[col_start:col_start+col_count]    # array of dictionaries
         return self
 
     def add(self, matrix, row_start, col_start, col_count):
         """Appends a copy of the specified portion of a matrix to this matrix"""
-        if self.cols != col_count:
-            raise Exception("Incompatible number of columns")
+        if __debug__ and self.cols < col_count:
+            raise Exception("out of range")
 
-        for col in range(self.cols):
-            if matrix.value_count(col_start + col) != self.value_count(col):
-                raise Exception("Incompatible relations")
+        if __debug__:
+            for col in range(self.cols):
+                if matrix.value_count(col_start + col) != self.value_count(col):
+                    raise Exception("incompatible relations")
 
-        self.data = np.vstack((self.data, matrix.data[row_start:, col_start:col_start + col_count]))
+        for i in range(matrix.rows - row_start):
+            self.data.append(matrix.data[row_start + i][col_start:col_start + col_count])
 
     def set_size(self, rows, cols):
         """Resize this matrix (and set all attributes to be continuous)"""
-        self.data = np.zeros((rows, cols))
+        self.data = [[0]*cols for row in range(rows)]
         self.attr_names = [""] * cols
         self.str_to_enum = {}
         self.enum_to_str = {}
 
     def load_arff(self, filename):
         """Load matrix from an ARFF file"""
-        self.data = None
+        self.data = []
         self.attr_names = []
         self.str_to_enum = []
         self.enum_to_str = []
@@ -116,34 +134,33 @@ class Matrix:
 
                 else:
                     # reading data
+                    row = []
                     val_idx = 0
                     # print("{}".format(line))
                     vals = line.split(",")
-                    row = np.zeros((len(vals)))
                     for val in vals:
                         val = val.strip()
                         if not val:
                             raise Exception("Missing data element in row with data '{}'".format(line))
                         else:
-                            row[val_idx] = float(self.MISSING if val == "?" else self.str_to_enum[val_idx].get(val, val))
+                            row += [float(self.MISSING if val == "?" else self.str_to_enum[val_idx].get(val, val))]
 
                         val_idx += 1
 
                     rows += [row]
 
-
         f.close()
-        self.data = np.array(rows)
+        self.data=rows
 
     @property
     def rows(self):
         """Get the number of rows in the matrix"""
-        return self.data.shape[0]
+        return len(self.data)
 
     @property
     def cols(self):
         """Get the number of columns (or attributes) in the matrix"""
-        return self.data.shape[1]
+        return len(self.attr_names)
 
     def row(self, n):
         """Get the specified row"""
@@ -151,18 +168,18 @@ class Matrix:
 
     def col(self, n):
         """Get the specified column"""
-        return self.data[:,n]
+        return [row[n] for row in self.data]
 
     def get(self, row, col):
         """
         Get the element at the specified row and column
         :rtype: float
         """
-        return self.data[row, col]
+        return self.data[row][col]
 
     def set(self, row, col, val):
         """Set the value at the specified row and column"""
-        self.data[row, col] = val
+        self.data[row][col] = val
 
     def attr_name(self, col):
         """Get the name of the specified attribute"""
@@ -191,34 +208,32 @@ class Matrix:
     def shuffle(self, buddy=None):
         """Shuffle the row order. If a buddy Matrix is provided, it will be shuffled in the same order."""
         if not buddy:
-          np.random.shuffle(self.data)
+          random.shuffle(self.data)
         else:
-          if (self.data.shape[0] != buddy.data.shape[0]):
-              raise Exception
-          temp = np.hstack((self.data, buddy.data))
-          np.random.shuffle(temp)
-          self.data, buddy.data = temp[:,:self.cols], temp[:,self.cols:]
+          c = list(zip(self.data, buddy.data))
+          random.shuffle(c)
+          self.data, buddy.data = zip(*c)
 
     def column_mean(self, col):
         """Get the mean of the specified column"""
 
-        col_data = self.col(col)
-        return np.mean(col_data[np.isfinite(col_data)])
+        a = np.ma.masked_equal(self.col(col), self.MISSING).compressed()
+        return np.mean(a)
 
     def column_min(self, col):
         """Get the min value in the specified column"""
-        col_data = self.col(col)
-        return np.min(col_data[np.isfinite(col_data)])
+        a = np.ma.masked_equal(self.col(col), self.MISSING).compressed()
+        return np.min(a)
 
     def column_max(self, col):
         """Get the max value in the specified column"""
-        col_data = self.col(col)
-        return np.max(col_data[np.isfinite(col_data)])
+        a = np.ma.masked_equal(self.col(col), self.MISSING).compressed()
+        return np.max(a)
 
     def most_common_value(self, col):
         """Get the most common value in the specified column"""
-        col_data = self.col(col)
-        (val, count) = stats.mode(col_data[np.isfinite(col_data)])
+        a = np.ma.masked_equal(self.col(col), self.MISSING).compressed()
+        (val, count) = mode(a)
         return val[0]
 
     def normalize(self):
@@ -227,7 +242,10 @@ class Matrix:
             if self.value_count(i) == 0:     # is continuous
                 min_val = self.column_min(i)
                 max_val = self.column_max(i)
-                self.data[:,i] = (self.data[:,i] - min_val) / (max_val - min_val)
+                for j in range(self.rows):
+                    v = self.get(j, i)
+                    if v != self.MISSING:
+                        self.set(j, i, (v - min_val)/(max_val - min_val))
 
     def print(self):
         print("@RELATION {}".format(self.dataset_name))
@@ -237,8 +255,7 @@ class Matrix:
                 print(" CONTINUOUS")
             else:
                 print(" {{{}}}".format(", ".join(self.enum_to_str[i].values())))
-        
-        # Could be modified to print using numpy, np.where? 
+
         print("@DATA")
         for i in range(self.rows):
             r = self.row(i)

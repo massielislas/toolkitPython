@@ -1,8 +1,8 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 
 from unittest import TestCase,TestLoader,TextTestRunner
-from matrix import Matrix
-
+from .matrix import Matrix
+import numpy as np
 
 class TestMatrix(TestCase):
 
@@ -16,34 +16,34 @@ class TestMatrix(TestCase):
         m.attr_names = ['A', 'B', 'C']
         m.str_to_enum = [{}, {}, {'R': 0, 'G': 1, 'B': 2}]
         m.enum_to_str = [{}, {}, {0: 'R', 1: 'G', 2: 'B'}]
-        m.data = [[1.5, -6, 1.0],
+        m.data = np.array([[1.5, -6, 1.0],
                   [2.3, -8, 2],
-                  [4.1, self.infinity, 2]]
+                  [4.1, self.infinity, 2]])
         self.m = m
 
         m2 = Matrix()
         m2.attr_names = ['A', 'B', 'C', 'D', 'E']
         m2.str_to_enum = [{}, {}, {}, {}, {'R': 0, 'G': 1, 'B': 2}]
         m2.enum_to_str = [{}, {}, {}, {}, {0: 'R', 1: 'G', 2: 'B'}]
-        m2.data = [[0.0, 1.0, 2.0, 3.0, 0.0],
+        m2.data = np.array([[0.0, 1.0, 2.0, 3.0, 0.0],
                    [0.1, 1.1, 2.1, 3.1, 1.0],
                    [0.2, 1.2, 2.2, 3.2, 1.0],
                    [0.3, 1.3, 2.3, 3.3, 2.0],
-                   [0.4, 1.4, 2.4, 3.4, 2.0]]
+                   [0.4, 1.4, 2.4, 3.4, 2.0]])
         self.m2 = m2
 
     def test_init_from(self):
         m2 = Matrix(self.m, 1, 1, 2, 2)
-        self.assertListEqual(m2.row(0), [-8, 2])
-        self.assertListEqual(m2.row(1), [self.infinity, 2])
+        self.assertListEqual(m2.row(0).tolist(), [-8, 2])
+        self.assertListEqual(m2.row(1).tolist(), [self.infinity, 2])
 
     def test_add(self):
         self.m.add(self.m2, 0, 2, 3)
         self.m.print()
-        self.assertListEqual(self.m.row(3), self.m2.row(0)[2:])
+        self.assertListEqual(self.m.row(3).tolist(), self.m2.row(0)[2:].tolist())
         self.m.add(self.m2, 3, 2, 3)
         self.m.print()
-        self.assertListEqual(self.m.row(9), self.m2.row(4)[2:])
+        self.assertListEqual(self.m.row(9).tolist(), self.m2.row(4)[2:].tolist())
 
     def test_set_size(self):
         m = Matrix()
@@ -53,8 +53,8 @@ class TestMatrix(TestCase):
 
     def test_load_arff(self):
         t = Matrix()
-        t.load_arff("test/cm1_req.arff")
-        self.assertListEqual(t.row(t.rows-1), [1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 3.0, 1.0, 1.0])
+        t.load_arff("datasets/iris.arff")
+        self.assertListEqual(t.row(t.rows-1).tolist(), [5.9, 3.0, 5.1, 1.8, 2.0])
 
     def test_rows(self):
         self.assertEquals(self.m.rows, 3)
@@ -63,10 +63,10 @@ class TestMatrix(TestCase):
         self.assertEquals(self.m.cols, 3)
 
     def test_row(self):
-        self.assertListEqual(self.m.row(1), [2.3, -8, 2])
+        self.assertListEqual(self.m.row(1).tolist(), [2.3, -8, 2])
 
     def test_col(self):
-        self.assertListEqual(self.m.col(1), [-6, -8, self.infinity])
+        self.assertListEqual(self.m.col(1).tolist(), [-6, -8, self.infinity])
 
     def test_get(self):
         self.assertEquals(self.m.get(0, 2), 1)
@@ -116,5 +116,5 @@ class TestMatrix(TestCase):
         self.assertEquals(self.m.most_common_value(0), 1.5)
         self.assertEquals(self.m.most_common_value(2), 2)
 
-# suite = TestLoader().loadTestsFromTestCase(TestMatrix)
-# TextTestRunner(verbosity=2).run(suite)
+suite = TestLoader().loadTestsFromTestCase(TestMatrix)
+TextTestRunner(verbosity=2).run(suite)
