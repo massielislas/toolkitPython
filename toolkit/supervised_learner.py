@@ -49,14 +49,14 @@ class SupervisedLearner:
         label_values_count = labels.value_count(0)
         if label_values_count == 0:
             # label is continuous
-            pred = []
+            pred = [0.0]
             sse = 0.0
             for i in range(features.rows):
                 feat = features.row(i)
                 targ = labels.row(i)
                 
-                if len(labels > 0):
-                    del labels[:]
+                if len(pred > 0):
+                    del pred[:]
                 self.predict(feat, pred)
                 delta = targ[0] - pred[0]
                 sse += delta**2
@@ -73,6 +73,9 @@ class SupervisedLearner:
             for i in range(features.rows):
                 feat = features.row(i)
                 targ = int(labels.get(i, 0))
+
+                if len(prediction) > 0:
+                    del prediction[:]
                 if targ >= label_values_count:
                     raise Exception("The label is out of range")
                 self.predict(feat, prediction)
