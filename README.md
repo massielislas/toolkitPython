@@ -45,7 +45,9 @@ For information on the expected syntax, run
 
 ```bash
 python -m toolkit.manager
+```
 OR
+```bash
 python -m toolkit.manager --help
 ```
 
