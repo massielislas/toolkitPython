@@ -31,14 +31,16 @@ Notice that you must specify the module "toolkit" as well as the manager file.
 Aside from this difference, commands follow the same syntax as the other toolkits.
 
 The toolkit is run as follows:
+```bash
 python toolkit.manager -L [learningAlgorithm] -A [ARFF\_File] -E [EvaluationMethod] {[ExtraParamters]} [-N] [-R seed]
-
+```
 Possible evaluation methods are:
+```bash
 python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E training
 python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E static [TestARFF_File]
 python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E random [PercentageForTraining]
 python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E cross [numOfFolds]
-
+```
 For information on the expected syntax, run
 
 ```bash
