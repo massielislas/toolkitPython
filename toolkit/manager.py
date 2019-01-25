@@ -35,7 +35,9 @@ class MLSystemManager:
 
     def main(self):
         # parse the command-line arguments
+        print("test2")
         args = self.parser().parse_args()
+        print("test")
         file_name = args.arff
         learner_name = args.L
         eval_method = args.E[0]

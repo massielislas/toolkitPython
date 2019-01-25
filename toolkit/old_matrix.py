@@ -35,18 +35,17 @@ class Matrix:
     function ensures that all values are read as floats.)
     """
 
-    data = []
-    attr_names = []
-    str_to_enum = []       # array of dictionaries
-    enum_to_str = []       # array of dictionaries
-    dataset_name = "Untitled"
-    MISSING = float("infinity")
-
     def __init__(self, matrix=None, row_start=None, col_start=None, row_count=None, col_count=None, arff=None):
         """
         If matrix is provided, all parameters must be provided, and the new matrix will be
         initialized with the specified portion of the provided matrix.
         """
+        self.data = []
+        self.attr_names = []
+        self.str_to_enum = []       # array of dictionaries
+        self.enum_to_str = []       # array of dictionaries
+        self.dataset_name = "Untitled"
+        self.MISSING = float("infinity")
         if arff:
             self.load_arff(arff)
         elif matrix:
