@@ -6,9 +6,19 @@ from .matrix import Matrix
 import random
 import argparse
 import time
-
+import sys
 
 class MLSystemManager:
+    def __init__(self):
+        self.doc_string = '''
+ML toolkit manager
+Usage: python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E [EvaluationMethod] {[ExtraParamters]} [-N] [-R seed]
+
+Possible evaluation methods are:
+python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E training
+python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E static [TestARFF_File]
+python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E random [PercentageForTraining]
+python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E cross [numOfFolds]'''
 
     def get_learner(self, model):
         """
@@ -35,9 +45,7 @@ class MLSystemManager:
 
     def main(self):
         # parse the command-line arguments
-        print("test2")
         args = self.parser().parse_args()
-        print("test")
         file_name = args.arff
         learner_name = args.L
         eval_method = args.E[0]
@@ -191,7 +199,8 @@ class MLSystemManager:
             raise Exception("Unrecognized evaluation method '{}'".format(eval_method))
 
     def parser(self):
-        parser = argparse.ArgumentParser(description='Machine Learning System Manager')
+        parser = ToolkitArgParser(description="Usage: python toolkit.manager -L [learningAlgorithm]"+ 
+                "-A [ARFF_File] -E [EvaluationMethod] {[ExtraParamters]} [-N] [-R seed]", doc_string=self.doc_string)
 
         parser.add_argument('-V', '--verbose', action='store_true', help='Print the confusion matrix and learner accuracy on individual class values')
         parser.add_argument('-N', '--normalize', action='store_true', help='Use normalized data')
@@ -201,6 +210,16 @@ class MLSystemManager:
         parser.add_argument('-E', metavar=('METHOD', 'args'), required=True, nargs='+', help="Evaluation method (training | static <test_ARFF_file> | random <%%_for_training> | cross <num_folds>)")
 
         return parser
+
+class ToolkitArgParser(argparse.ArgumentParser):
+    def __init__(self, description=None, doc_string=None):
+        super(ToolkitArgParser, self).__init__(description=description)
+        self.doc_string = doc_string
+
+    def error(self, message):
+        sys.stderr.write('Error: %s\n' % message)
+        print(self.doc_string)
+        sys.exit()
 
 
 if __name__ == '__main__':
