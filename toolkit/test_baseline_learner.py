@@ -7,20 +7,20 @@ from .matrix import Matrix
 
 class TestBaselineLearner(TestCase):
 
-    labels = Matrix()
-    labels.load_arff("test/cm1_req.arff")
-    l = BaselineLearner()
+    data = Matrix(arff="test/cm1_req.arff")
+    features = Matrix(data, 0, 0, data.rows, data.cols-1)
+    labels = Matrix(data, 0, data.cols-1, data.rows, 1)
+    learner = BaselineLearner()
 
     def test_train(self):
-        self.l.train(Matrix(), self.labels)
-        self.assertAlmostEqual(self.l.labels[0], 1.426966, places=4)
+        self.learner.train(self.features, self.labels)
+        self.assertAlmostEqual(self.learner.average_label[0], 0.0, places=4)
 
     def test_predict(self):
-        self.l.train(Matrix(), self.labels)
-        labels = []
-        self.l.predict([], labels)
+        self.learner.train(self.features, self.labels)
+        label = self.learner.predict(self.features.row(0))
 
-        self.assertListEqual(self.l.labels, labels)
+        self.assertListEqual(self.learner.average_label, label)
 
 suite = TestLoader().loadTestsFromTestCase(TestBaselineLearner)
 TextTestRunner(verbosity=2).run(suite)
