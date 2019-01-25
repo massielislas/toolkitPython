@@ -3,13 +3,17 @@ Python port of [BYU CS 478 machine learning toolkit](http://axon.cs.byu.edu/~mar
 
 Works with Python 2.7 or 3. Requires [NumPy](http://www.numpy.org) and [SciPy](https://www.scipy.org/).
 
-## Capabilities
+## Package Installation
+Some users choose to download the package source and call it via command line. If you would prefer to install the package to your current Python environment, you can run:
+```bash
+pip install git+https://github.com/cs478ta/toolkitPython#egg=toolkitPython
+```
+The module can now be imported in a Python script using the command `import toolkit`. You can alternatively clone the source, and run the command:
 
-1. Parses and stores the ARFF file
-2. Randomizes the instances in the ARFF file
-3. Provides different evaluation methods.
-4. Parse command-line arguments
-5. Normalize attributes
+```bash
+pip install -e /path/to/toolkit
+```
+Here, the `-e` flag stands for 'editable'. The main effect of this is Python will recompile the package when the source changes.
 
 ## Usage
 
@@ -30,23 +34,8 @@ python -m toolkit.manager -L baseline -A datasets/iris.arff -E training
 Notice that you must specify the module "toolkit" as well as the manager file. 
 Aside from this difference, commands follow the same syntax as the other toolkits.
 
-The toolkit is run as follows:
-```bash
-python toolkit.manager -L [learningAlgorithm] -A [ARFF\_File] -E [EvaluationMethod] {[ExtraParamters]} [-N] [-R seed]
-```
-Possible evaluation methods are:
-```bash
-python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E training
-python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E static [TestARFF_File]
-python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E random [PercentageForTraining]
-python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E cross [numOfFolds]
-```
 For information on the expected syntax, run
 
-```bash
-python -m toolkit.manager
-```
-OR
 ```bash
 python -m toolkit.manager --help
 ```
@@ -63,3 +52,11 @@ Simple unit tests have been implemented to ensure that the toolkit is operating 
 python -m toolkit.test_matrix
 python -m toolkit.test_baseline_learner
 ```
+
+## Capabilities
+
+1. Parses and stores the ARFF file
+2. Randomizes the instances in the ARFF file
+3. Provides different evaluation methods. 
+4. Parse command-line arguments
+5. Normalize attributes
