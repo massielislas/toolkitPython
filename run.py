@@ -14,9 +14,8 @@ utils.save_arff(iris_url, iris_data)
 iris = matrix.Matrix(arff=iris_data)
 
 ## Create manager
-my_manager = manager.MLSystemManager()
 args = r'-L baseline -A {} -E training'.format(iris_data)
-my_manager.main(args)
+my_manager = manager.MLSystemManager(args)
 
 print(my_manager.learner.average_label) # properties in learner
 print(my_manager.data) # the Matrix class

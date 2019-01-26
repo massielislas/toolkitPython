@@ -82,7 +82,7 @@ class Matrix:
 
         f = open(filename)
         for line in f.readlines():
-            line = line.rstrip()
+            line = line.strip() # why was this rstrip()?
             if len(line) > 0 and line[0] != '%':
                 if not reading_data:
                     if line.lower().startswith("@relation"):

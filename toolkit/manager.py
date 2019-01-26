@@ -11,8 +11,8 @@ import textwrap
 import shlex
 
 class MLSystemManager:
-    def __init__(self):
-        self.learner = None
+    def __init__(self, args=None, learner=None):
+        self.learner = learner
         self.data = None
         self.doc_string = textwrap.dedent('''
                             ML toolkit manager
@@ -23,6 +23,7 @@ class MLSystemManager:
                             python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E static [TestARFF_File]
                             python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E random [PercentageForTraining]
                             python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E cross [numOfFolds]''')
+        self.main(args)
 
     def get_learner(self, model):
         """
@@ -64,7 +65,8 @@ class MLSystemManager:
         random.seed(args.seed) # Use a seed for deterministic results, if provided (makes debugging easier)
 
         # load the model
-        self.learner = self.get_learner(learner_name)
+        if self.learner is None:
+            self.learner = self.get_learner(learner_name)
 
         # load the ARFF file
         self.data = Matrix()
