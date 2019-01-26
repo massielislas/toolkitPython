@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 
+# Implemented components
+implemented/
+
 # C extensions
 *.so
 
@@ -22,6 +25,26 @@ var/
 .installed.cfg
 *.egg
 
+# Passwords and cookies
+password.txt
+cookies/
+logs/
+pages/
+Notes/
+dev/
+*.log
+*.html
+*.txt
+profile*
+*profile
+*profile*
+cookies*
+
+# Pycharm project settings
+.idea/
+.idea
+*.xml
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -41,6 +64,14 @@ coverage.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# dotenv
+.env
+
+# virtualenv
+venv/
+ENV/
+venv2/
 
 # Rope
 .ropeproject

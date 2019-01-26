@@ -31,6 +31,14 @@ class Matrix:
         if arff:
             self.load_arff(arff)
         elif matrix:
+            if row_start is None:
+                row_start = 0
+            if col_start is None:
+                col_start = 0
+            if row_count is None:
+                row_count = matrix.rows
+            if col_count is None:
+                col_count = matrix.cols
             self.init_from(matrix, row_start, col_start, row_count, col_count)
         else:
             pass
@@ -229,17 +237,21 @@ class Matrix:
                 max_val = self.column_max(i)
                 self.data[:,i] = (self.data[:,i] - min_val) / (max_val - min_val)
 
-    def print(self):
-        print("@RELATION {}".format(self.dataset_name))
+    def get_matrix_as_arff(self):
+        """ Get representation of matrix as arff-style string
+            Returns:
+                string
+        """
+        out_string = ""
+        out_string += "@RELATION {}".format(self.dataset_name)+ "\n"
         for i in range(len(self.attr_names)):
-            print("@ATTRIBUTE {}".format(self.attr_names[i]), end="")
+            out_string += "@ATTRIBUTE {}".format(self.attr_names[i])
             if self.value_count(i) == 0:
-                print(" CONTINUOUS")
+                out_string += (" CONTINUOUS")+ "\n"
             else:
-                print(" {{{}}}".format(", ".join(self.enum_to_str[i].values())))
-        
-        # Could be modified to print using numpy, np.where? 
-        print("@DATA")
+                out_string += (" {{{}}}".format(", ".join(self.enum_to_str[i].values())))+ "\n"
+
+        out_string += ("@DATA")+ "\n"
         for i in range(self.rows):
             r = self.row(i)
 
@@ -252,4 +264,52 @@ class Matrix:
 
             # values = list(map(lambda j: str(r[j]) if self.value_count(j) == 0 else self.enum_to_str[j][r[j]],
             #                   range(len(r))))
-            print("{}".format(", ".join(values)))
+            out_string += ("{}".format(", ".join(values)))+ "\n"
+
+        return out_string
+
+    def __str__(self):
+        return self.get_matrix_as_arff()
+
+    def print(self):
+        print(self)
+
+    def nd_array(self, obj):
+        """ Convert a matrix, list, or numpy array to numpy array
+        Args:
+            obj (array-like): An object to be converted
+        Returns
+            numpy array
+        """
+
+        if isinstance(obj, Matrix):
+            return obj.data
+        elif isinstance(obj, list):
+            return np.ndarray(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj
+        else:
+            raise Exception("Unrecognized data type")
+
+    def append_columns(self, columns):
+        """ Add columns to matrix. Number of rows must match existing Matrix.
+        Args:
+            columns (array-like): columns can be a Matrix, numpy array, or list
+        """
+        columns_to_add = self.nd_array(columns)
+        if self.rows != columns_to_add.shape[0]:
+            raise Exception("Incompatible number of rows: {}, {}".format(self.rows,columns_to_add.shape[0]))
+        self.data = np.concatenate([self.data, columns_to_add], axis=1)
+        return self
+
+    def append_rows(self, rows):
+        """ Add rows to matrix. Number of columns must match existing Matrix.
+        Args:
+            rows (array-like): rows can be a Matrix, numpy array, or list
+        """
+        rows_to_add = self.nd_array(rows)
+        if self.cols != rows_to_add.shape[1]:
+            raise Exception("Incompatible number of columns: {}, {}".format(self.cols, rows_to_add.shape[1]))
+        self.data = np.concatenate([self.data, rows_to_add],axis=0)
+        return self
+

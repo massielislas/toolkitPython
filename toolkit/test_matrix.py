@@ -3,6 +3,8 @@ from __future__ import (absolute_import, division, print_function, unicode_liter
 from unittest import TestCase,TestLoader,TextTestRunner
 from .matrix import Matrix
 import numpy as np
+import os
+from toolkit import utils
 
 class TestMatrix(TestCase):
 
@@ -53,6 +55,9 @@ class TestMatrix(TestCase):
 
     def test_load_arff(self):
         t = Matrix()
+        data_path = "./datasets/iris.arff"
+        url = "http://axon.cs.byu.edu/data/uci_class/iris.arff"
+        utils.save_arff(url, data_path)
         t.load_arff("datasets/iris.arff")
         self.assertListEqual(t.row(t.rows-1).tolist(), [5.9, 3.0, 5.1, 1.8, 2.0])
 
@@ -115,6 +120,51 @@ class TestMatrix(TestCase):
     def test_most_common_value(self):
         self.assertEquals(self.m.most_common_value(0), 1.5)
         self.assertEquals(self.m.most_common_value(2), 2)
+
+
+    def test_append_rows(self):
+        test_matrix = Matrix(self.m)
+
+        # Verify it works with other matrices
+        test_matrix.append_rows(test_matrix)
+        assert test_matrix.data.shape == (6,3)
+
+        # Verify it works with numpy array
+        test_matrix.append_rows(test_matrix.data)
+        assert test_matrix.data.shape == (12,3)
+
+        # Verify it works with 2D list
+        test_matrix.append_rows(test_matrix.data)
+        assert test_matrix.data.shape == (24,3)
+
+        # Verify incompatible number of rows
+        with self.assertRaises(Exception) as context:
+            test_matrix.append_rows(self.m.data[:,:2])
+        print(str(context.exception))
+        self.assertTrue('Incompatible number of columns' in str(context.exception))
+
+
+    def test_append_columns(self):
+        test_matrix = Matrix(self.m)
+
+        # Verify it works with other matrices
+        test_matrix.append_columns(test_matrix)
+        assert test_matrix.data.shape == (3,6)
+
+        # Verify it works with numpy array
+        test_matrix.append_columns(test_matrix.data)
+        assert test_matrix.data.shape == (3,12)
+
+        # Verify it works with 2D list
+        test_matrix.append_columns(test_matrix.data)
+        assert test_matrix.data.shape == (3,24)
+
+        # Verify incompatible number of columns
+        with self.assertRaises(Exception) as context:
+            test_matrix.append_columns(self.m.data[:1,:])
+        self.assertTrue('Incompatible number of rows' in str(context.exception))
+
+
 
 suite = TestLoader().loadTestsFromTestCase(TestMatrix)
 TextTestRunner(verbosity=2).run(suite)

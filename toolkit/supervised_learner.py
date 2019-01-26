@@ -2,7 +2,7 @@ from __future__ import (absolute_import, division, print_function, unicode_liter
 
 from .matrix import Matrix
 import math
-
+import numpy as np
 # this is an abstract class
 
 
@@ -57,8 +57,8 @@ class SupervisedLearner:
                 
                 if len(pred > 0):
                     del pred[:]
-                self.predict(feat, pred)
-                delta = targ[0] - pred[0]
+                pred = self.predict(feat)
+                delta = targ - pred
                 sse += delta**2
             return math.sqrt(sse / features.rows)
 
@@ -78,16 +78,14 @@ class SupervisedLearner:
                     del prediction[:]
                 if targ >= label_values_count:
                     raise Exception("The label is out of range")
-                self.predict(feat, prediction)
-                pred = int(prediction[0])
-                if confusion:
+
+                # Assume predictions are integers 0-# of classes
+                pred = np.asarray(self.predict(feat)).astype(int)
+
+                if confusion: # only working with one output?
+                    pred = pred[0]
                     confusion.set(targ, pred, confusion.get(targ, pred)+1)
                 if pred == targ:
                     correct_count += 1
 
             return correct_count / features.rows
-
-
-
-
-

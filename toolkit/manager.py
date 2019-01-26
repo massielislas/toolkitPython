@@ -7,18 +7,22 @@ import random
 import argparse
 import time
 import sys
+import textwrap
+import shlex
 
 class MLSystemManager:
     def __init__(self):
-        self.doc_string = '''
-ML toolkit manager
-Usage: python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E [EvaluationMethod] {[ExtraParamters]} [-N] [-R seed]
-
-Possible evaluation methods are:
-python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E training
-python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E static [TestARFF_File]
-python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E random [PercentageForTraining]
-python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E cross [numOfFolds]'''
+        self.learner = None
+        self.data = None
+        self.doc_string = textwrap.dedent('''
+                            ML toolkit manager
+                            Usage: python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E [EvaluationMethod] {[ExtraParamters]} [-N] [-R seed]
+                            
+                            Possible evaluation methods are:
+                            python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E training
+                            python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E static [TestARFF_File]
+                            python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E random [PercentageForTraining]
+                            python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E cross [numOfFolds]''')
 
     def get_learner(self, model):
         """
@@ -43,9 +47,14 @@ python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E cross [numOfFold
         else:
             raise Exception("Unrecognized model: {}".format(model))
 
-    def main(self):
+    def main(self, myArgs=None):
         # parse the command-line arguments
-        args = self.parser().parse_args()
+        if myArgs is None:
+            args = self.parser().parse_args()
+        else:
+            # user can pass in command line argument as a string from another Python script
+            args = self.parser().parse_args(shlex.split(myArgs))
+
         file_name = args.arff
         learner_name = args.L
         eval_method = args.E[0]
@@ -55,34 +64,34 @@ python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E cross [numOfFold
         random.seed(args.seed) # Use a seed for deterministic results, if provided (makes debugging easier)
 
         # load the model
-        learner = self.get_learner(learner_name)
+        self.learner = self.get_learner(learner_name)
 
         # load the ARFF file
-        data = Matrix()
-        data.load_arff(file_name)
+        self.data = Matrix()
+        self.data.load_arff(file_name)
         if normalize:
             print("Using normalized data")
-            data.normalize()
+            self.data.normalize()
 
         # print some stats
         print("\nDataset name: {}\n"
               "Number of instances: {}\n"
               "Number of attributes: {}\n"
               "Learning algorithm: {}\n"
-              "Evaluation method: {}\n".format(file_name, data.rows, data.cols, learner_name, eval_method))
+              "Evaluation method: {}\n".format(file_name, self.data.rows, self.data.cols, learner_name, eval_method))
 
         if eval_method == "training":
 
             print("Calculating accuracy on training set...")
 
-            features = Matrix(data, 0, 0, data.rows, data.cols-1)
-            labels = Matrix(data, 0, data.cols-1, data.rows, 1)
+            features = Matrix(self.data, 0, 0, self.data.rows, self.data.cols-1)
+            labels = Matrix(self.data, 0, self.data.cols-1, self.data.rows, 1)
             confusion = Matrix()
             start_time = time.time()
-            learner.train(features, labels)
+            self.learner.train(features, labels)
             elapsed_time = time.time() - start_time
             print("Time to train (in seconds): {}".format(elapsed_time))
-            accuracy = learner.measure_accuracy(features, labels, confusion)
+            accuracy = self.learner.measure_accuracy(features, labels, confusion)
             print("Training set accuracy: " + str(accuracy))
 
             if print_confusion_matrix:
@@ -100,21 +109,21 @@ python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E cross [numOfFold
 
             print("Test set name: {}".format(eval_parameter))
             print("Number of test instances: {}".format(test_data.rows))
-            features = Matrix(data, 0, 0, data.rows, data.cols-1)
-            labels = Matrix(data, 0, data.cols-1, data.rows, 1)
+            features = Matrix(self.data, 0, 0, self.data.rows, self.data.cols-1)
+            labels = Matrix(self.data, 0, self.data.cols-1, self.data.rows, 1)
 
             start_time = time.time()
-            learner.train(features, labels)
+            self.learner.train(features, labels)
             elapsed_time = time.time() - start_time
             print("Time to train (in seconds): {}".format(elapsed_time))
 
-            train_accuracy = learner.measure_accuracy(features, labels)
+            train_accuracy = self.learner.measure_accuracy(features, labels)
             print("Training set accuracy: {}".format(train_accuracy))
 
             test_features = Matrix(test_data, 0, 0, test_data.rows, test_data.cols-1)
             test_labels = Matrix(test_data, 0, test_data.cols-1, test_data.rows, 1)
             confusion = Matrix()
-            test_accuracy = learner.measure_accuracy(test_features, test_labels, confusion)
+            test_accuracy = self.learner.measure_accuracy(test_features, test_labels, confusion)
             print("Test set accuracy: {}".format(test_accuracy))
 
             if print_confusion_matrix:
@@ -123,6 +132,10 @@ python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E cross [numOfFold
                 print("")
 
         elif eval_method == "random":
+            """ This eval_method 1) creates a 'random' training/test split according to some user-specified percentage,
+                            2) trains the data
+                            3) reports training AND test accuracy
+            """
 
             print("Calculating accuracy on a random hold-out set...")
             train_percent = float(eval_parameter)
@@ -131,25 +144,25 @@ python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E cross [numOfFold
             print("Percentage used for training: {}".format(train_percent))
             print("Percentage used for testing: {}".format(1 - train_percent))
 
-            data.shuffle()
+            self.data.shuffle()
 
-            train_size = int(train_percent * data.rows)
-            train_features = Matrix(data, 0, 0, train_size, data.cols-1)
-            train_labels = Matrix(data, 0, data.cols-1, train_size, 1)
+            train_size = int(train_percent * self.data.rows)
+            train_features = Matrix(self.data, 0, 0, train_size, self.data.cols-1)
+            train_labels = Matrix(self.data, 0, self.data.cols-1, train_size, 1)
 
-            test_features = Matrix(data, train_size, 0, data.rows - train_size, data.cols-1)
-            test_labels = Matrix(data, train_size, data.cols-1, data.rows - train_size, 1)
+            test_features = Matrix(self.data, train_size, 0, self.data.rows - train_size, self.data.cols-1)
+            test_labels = Matrix(self.data, train_size, self.data.cols-1, self.data.rows - train_size, 1)
 
             start_time = time.time()
-            learner.train(train_features, train_labels)
+            self.learner.train(train_features, train_labels)
             elapsed_time = time.time() - start_time
             print("Time to train (in seconds): {}".format(elapsed_time))
 
-            train_accuracy = learner.measure_accuracy(train_features, train_labels)
+            train_accuracy = self.learner.measure_accuracy(train_features, train_labels)
             print("Training set accuracy: {}".format(train_accuracy))
 
             confusion = Matrix()
-            test_accuracy = learner.measure_accuracy(test_features, test_labels, confusion)
+            test_accuracy = self.learner.measure_accuracy(test_features, test_labels, confusion)
             print("Test set accuracy: {}".format(test_accuracy))
 
             if print_confusion_matrix:
@@ -169,25 +182,25 @@ python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E cross [numOfFold
             sum_accuracy = 0.0
             elapsed_time = 0.0
             for j in range(reps):
-                data.shuffle()
+                self.data.shuffle()
                 for i in range(folds):
-                    begin = int(i * data.rows / folds)
-                    end = int((i + 1) * data.rows / folds)
+                    begin = int(i * self.data.rows / folds)
+                    end = int((i + 1) * self.data.rows / folds)
 
-                    train_features = Matrix(data, 0, 0, begin, data.cols-1)
-                    train_labels = Matrix(data, 0, data.cols-1, begin, 1)
+                    train_features = Matrix(self.data, 0, 0, begin, self.data.cols-1)
+                    train_labels = Matrix(self.data, 0, self.data.cols-1, begin, 1)
 
-                    test_features = Matrix(data, begin, 0, end - begin, data.cols-1)
-                    test_labels = Matrix(data, begin, data.cols-1, end - begin, 1)
+                    test_features = Matrix(self.data, begin, 0, end - begin, self.data.cols-1)
+                    test_labels = Matrix(self.data, begin, self.data.cols-1, end - begin, 1)
 
-                    train_features.add(data, end, 0, data.cols - 1)
-                    train_labels.add(data, end, data.cols - 1, 1)
+                    train_features.add(self.data, end, 0, self.data.cols - 1)
+                    train_labels.add(self.data, end, self.data.cols - 1, 1)
 
                     start_time = time.time()
-                    learner.train(train_features, train_labels)
+                    self.learner.train(train_features, train_labels)
                     elapsed_time += time.time() - start_time
 
-                    accuracy = learner.measure_accuracy(test_features, test_labels)
+                    accuracy = self.learner.measure_accuracy(test_features, test_labels)
                     sum_accuracy += accuracy
                     print("Rep={}, Fold={}, Accuracy={}".format(j, i, accuracy))
 
