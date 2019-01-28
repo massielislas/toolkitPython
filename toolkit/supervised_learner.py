@@ -72,7 +72,7 @@ class SupervisedLearner:
             prediction = []
             for i in range(features.rows):
                 feat = features.row(i)
-                targ = int(labels.get(i, 0))
+                targ = int(labels.get(i, 0)) ## THIS ASSUME 1-D OUTPUTS
 
                 if len(prediction) > 0:
                     del prediction[:]
@@ -80,12 +80,12 @@ class SupervisedLearner:
                     raise Exception("The label is out of range")
 
                 # Assume predictions are integers 0-# of classes
-                pred = np.asarray(self.predict(feat)).astype(int)
+                pred = np.asarray(self.predict(feat)).astype(int)[0] ## ASSUME 1-D prediction
 
                 if confusion: # only working with one output?
-                    pred = pred[0]
                     confusion.set(targ, pred, confusion.get(targ, pred)+1)
-                if pred == targ:
+                #print(pred,targ)
+                if (pred == targ).all():
                     correct_count += 1
 
             return correct_count / features.rows

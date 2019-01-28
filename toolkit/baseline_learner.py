@@ -23,7 +23,7 @@ class BaselineLearner(SupervisedLearner):
         :type features: Matrix
         :type labels: Matrix
         """
-        self.labels = []
+        self.average_label = []
         for i in range(labels.cols):
             if labels.value_count(i) == 0:
                 self.average_label += [labels.column_mean(i)]          # continuous
