@@ -8,12 +8,15 @@ Some users choose to download the package source and call it via command line. I
 ```bash
 pip install git+https://github.com/cs478ta/toolkitPython#egg=toolkitPython
 ```
-The module can now be imported in a Python script using the command `import toolkit`. You can alternatively clone the source, and run the command:
+The module can now be imported in a Python script using the command `import toolkit`. If that does not work, or you prefer to have a local copy of the source, you may alternatively clone the source, and run the command:
 
 ```bash
-pip install -e /path/to/toolkit
+pip install -e /path/to/root_of_toolkit
 ```
-Here, the `-e` flag stands for 'editable'. The main effect of this is Python will recompile the package when the source changes.
+
+Note:
+* Path is the path to the repo directory containing "setup.py"
+* `-e` flag stands for 'editable'. The main effect of this is Python will recompile the package when the source changes.
 
 ## Usage
 
@@ -45,6 +48,7 @@ python -m toolkit.manager --help
 See the baseline_learner.py and its `BaselineLearner` class for an example of
 the format of the learner. Learning models should inherit from the `SupervisedLearner` base class and override
 the `train()` and `predict()` functions.
+
 ## Testing
 
 Simple unit tests have been implemented to ensure that the toolkit is operating as expected. They can be run as follows (while inside the toolkitPython directory):
