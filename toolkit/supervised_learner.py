@@ -17,7 +17,7 @@ class SupervisedLearner:
         """
         raise NotImplementedError()
 
-    def predict(self, features, labels):
+    def predict(self, features):
         """
         A feature vector goes in. A label vector comes out. (Some supervised
         learning algorithms only support one-dimensional label vectors. Some
