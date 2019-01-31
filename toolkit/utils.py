@@ -1,8 +1,16 @@
-import urllib.request
+import sys
+
+if (sys.version_info > (3, 0)):
+    import urllib.request as urllib
+else:
+    import urllib2 as urllib
+ 
+
+
 import os
 
 def get_arff(url="http://axon.cs.byu.edu/data/uci_class/iris.arff"):
-    response = urllib.request.urlopen(url)
+    response = urllib.urlopen(url)
     data = response.read()  # a `bytes` object
     text = data.decode('utf-8')  # a `str`; this step can't be used if data is binary
     return text

@@ -8,6 +8,8 @@ import argparse
 import time
 import sys
 import textwrap
+import inspect
+import warnings
 
 class MLSystemManager:
     """ This class manages Toolkit sessions. Each session is initiated with a specific dataset (arff file), evaluation type (training, test, etc.), and learner.
@@ -81,16 +83,16 @@ class MLSystemManager:
     def create_session_from_argv(self, args=None):
         """ Parses command line arguments and creates the appropriate session
         """
-        my_parser = self.parser()
-
         if len(sys.argv) > 1 and not args is None:
-            raise Exception("Cannot specify both argv and arguments in function call.")
-        elif not args is None:
+            #raise Exception("Cannot specify both argv and arguments in function call.")
+            warnings.warn("Argv and function call arguments detected, defaulting to function call arguments.")            
+        
+        if not args is None:
             import shlex
-            args = my_parser.parse_args(shlex.split(args))
+            args = self.parser().parse_args(shlex.split(args))
         else:
-            args = my_parser.parse_args()
-
+            args = self.parser().parse_args()
+            
         file_name = args.arff
         learner_name = args.L
         learner = self.get_learner(learner_name)
@@ -114,7 +116,13 @@ class ToolkitSession:
             random.seed(random_seed)
 
         # update class variables
-        self.learner = learner()
+        if inspect.isclass(learner):
+            self.learner = learner()
+            self.learner_name = learner.__name__
+        else:
+            self.learner = learner
+            self.learner_name = type(learner).__name__
+            
         self.print_confusion_matrix = print_confusion_matrix
         self.eval_method = eval_method
         self.eval_parameter = eval_parameter
@@ -132,7 +140,7 @@ class ToolkitSession:
               "Number of instances: {}\n"
               "Number of attributes: {}\n"
               "Learning algorithm: {}\n"
-              "Evaluation method: {}\n".format(arff_file, self.data.rows, self.data.cols, learner.__class__, self.eval_method))
+              "Evaluation method: {}\n".format(arff_file, self.data.rows, self.data.cols, self.learner_name, self.eval_method))
         self.main()
 
     def main(self):
