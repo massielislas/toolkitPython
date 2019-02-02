@@ -59,17 +59,6 @@ class Arff:
         self.str_to_enum = matrix.str_to_enum[col_start:col_start + col_count]
         self.enum_to_str = matrix.enum_to_str[col_start:col_start + col_count]
 
-    def add(self, matrix, row_start, col_start, col_count):
-        """Appends a copy of the specified portion of a matrix to this matrix"""
-        if self.cols != col_count:
-            raise Exception("Incompatible number of columns")
-
-        for col in range(self.cols):
-            if matrix.value_count(col_start + col) != self.value_count(col):
-                raise Exception("Incompatible relations")
-
-        self.data = np.vstack((self.data, matrix.data[row_start:, col_start:col_start + col_count]))
-
     def set_size(self, rows, cols):
         """Resize this matrix (and set all attributes to be continuous)"""
         self.data = np.zeros((rows, cols))
@@ -345,6 +334,10 @@ class Arff:
         self.data = np.concatenate([self.data, rows_to_add], axis=0)
         return self
 
+    def get_nominal_idx(self):
+        nominal_idx = [i for i,feature_type in enumerate(self.attr_types) if feature_type=="nominal"]
+        return nominal_idx if nominal_idx else None
+
     def __getitem__(self, index):
         """ Trivial wrapper for the 2D Numpy array data
         Args:
@@ -352,11 +345,10 @@ class Arff:
         Returns:
             array-like object
         """
-        # if isinstance(index, tuple):
-        #    return self.data[index]
-        # elif isinstance(index, slice)
-        # foo[1:2]
         return self.data[index]
+
+    def __setitem__(self, key, value):
+        self.data[key] = value
 
     def __iter__(self):
         """
@@ -364,6 +356,11 @@ class Arff:
         """
         for i in self.data:
             yield i
+
+    def get_dataframe(self):
+        import pandas as pd
+        df = pd.DataFrame(data=self.data, columns=self.attr_names)
+        return df
 
     @property
     def shape(self):

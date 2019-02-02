@@ -17,7 +17,7 @@ class BaselineLearner(SupervisedLearner):
         #self. weights = np.random.random((size))
         self.average_label = []
 
-    def train(self, features, labels):
+    def train(self, features, labels, nominal_idx=None):
         """
         This function should loop through the data and create/update a ML model until some stopping criteria is reached
         :type features: Arff

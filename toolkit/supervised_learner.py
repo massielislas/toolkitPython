@@ -8,7 +8,7 @@ import numpy as np
 
 class SupervisedLearner:
 
-    def train(self, features, labels):
+    def train(self, features, labels, nominal_idx=None):
         """
         Before you call this method, you need to divide your data
         into a feature matrix and a label matrix.
