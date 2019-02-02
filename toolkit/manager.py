@@ -17,6 +17,8 @@ import numpy as np
 * Still support END-TO-END commandline stuff
 * Also support: read in arff file, feed arff to learner, feed in learner to session
 * ARFF class: keep track of feature types!!
+* Can split ARFF files into features/labels; make sure this is done intelligently and appopriately
+
 
 """
 

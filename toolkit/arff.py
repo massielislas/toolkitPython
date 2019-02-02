@@ -5,8 +5,8 @@ import numpy as np
 from scipy import stats
 import re
 
-class Arff:
 
+class Arff:
     """
     Contains arff file data.
 
@@ -29,8 +29,9 @@ class Arff:
 
         self.data = None
         self.attr_names = []
-        self.str_to_enum = []       # list of dictionaries
-        self.enum_to_str = []       # list of dictionaries
+        self.attr_types = []
+        self.str_to_enum = []  # list of dictionaries
+        self.enum_to_str = []  # list of dictionaries
         self.dataset_name = "Untitled"
         self.MISSING = float("infinity")
 
@@ -45,7 +46,7 @@ class Arff:
             if col_count is None:
                 col_count = arff.cols
             self.init_from(arff, row_start, col_start, row_count, col_count)
-        elif isinstance(arff, str): # load from path
+        elif isinstance(arff, str):  # load from path
             self.load_arff(arff)
         else:
             pass
@@ -53,10 +54,10 @@ class Arff:
 
     def init_from(self, matrix, row_start, col_start, row_count, col_count):
         """Initialize the matrix with a portion of another matrix"""
-        self.data = matrix.data[row_start:row_start+row_count, col_start:col_start+col_count]
-        self.attr_names = matrix.attr_names[col_start:col_start+col_count]
-        self.str_to_enum = matrix.str_to_enum[col_start:col_start+col_count]
-        self.enum_to_str = matrix.enum_to_str[col_start:col_start+col_count]
+        self.data = matrix.data[row_start:row_start + row_count, col_start:col_start + col_count]
+        self.attr_names = matrix.attr_names[col_start:col_start + col_count]
+        self.str_to_enum = matrix.str_to_enum[col_start:col_start + col_count]
+        self.enum_to_str = matrix.enum_to_str[col_start:col_start + col_count]
 
     def add(self, matrix, row_start, col_start, col_count):
         """Appends a copy of the specified portion of a matrix to this matrix"""
@@ -84,11 +85,11 @@ class Arff:
         self.enum_to_str = []
         reading_data = False
 
-        rows = []           # we read data into array of rows, then convert into array of columns
+        rows = []  # we read data into array of rows, then convert into array of columns
 
         f = open(filename)
         for line in f.readlines():
-            line = line.strip() # why was this rstrip()?
+            line = line.strip()  # why was this rstrip()?
             if len(line) > 0 and line[0] != '%':
                 if not reading_data:
                     if line.lower().startswith("@relation"):
@@ -98,7 +99,7 @@ class Arff:
                         if attr_def[0] == "'":
                             attr_def = attr_def[1:]
                             attr_name = attr_def[:attr_def.index("'")]
-                            attr_def = attr_def[attr_def.index("'")+1:].strip()
+                            attr_def = attr_def[attr_def.index("'") + 1:].strip()
                         else:
                             search = re.search(r'(\w*)\s*(.*)', attr_def)
                             attr_name = search.group(1)
@@ -110,7 +111,11 @@ class Arff:
 
                         str_to_enum = {}
                         enum_to_str = {}
-                        if not(attr_def.lower() == "real" or attr_def.lower() == "continuous" or attr_def.lower() == "integer"):
+                        if attr_def.lower() in ["real", "continuous"]:
+                            self.attr_types.append("continuous")
+                        elif attr_def.lower() == "integer":
+                            self.attr_types.append("ordinal")
+                        else:
                             # attribute is discrete
                             assert attr_def[0] == '{' and attr_def[-1] == '}'
                             attr_def = attr_def[1:-1]
@@ -121,7 +126,7 @@ class Arff:
                                 enum_to_str[val_idx] = val
                                 str_to_enum[val] = val_idx
                                 val_idx += 1
-
+                            self.attr_types.append("nominal")
                         self.enum_to_str.append(enum_to_str)
                         self.str_to_enum.append(str_to_enum)
 
@@ -139,12 +144,12 @@ class Arff:
                         if not val:
                             raise Exception("Missing data element in row with data '{}'".format(line))
                         else:
-                            row[val_idx] = float(self.MISSING if val == "?" else self.str_to_enum[val_idx].get(val, val))
+                            row[val_idx] = float(
+                                self.MISSING if val == "?" else self.str_to_enum[val_idx].get(val, val))
 
                         val_idx += 1
 
                     rows += [row]
-
 
         f.close()
         self.data = np.array(rows)
@@ -157,7 +162,7 @@ class Arff:
     @property
     def features_count(self):
         """Get the number of columns (or attributes) in the matrix"""
-        return self.data.shape[1]-self.label_count
+        return self.data.shape[1] - self.label_count
 
     def get_features(self, _type=None):
         """ Return features as 2D array
@@ -169,19 +174,29 @@ class Arff:
 
         """
         if _type is None:
-            return self.data[:,0:-self.label_count]
-        elif _type=="nominal":
-            return self.data[:,0:-self.label_count]
-        elif _type=="continuous":
             return self.data[:, 0:-self.label_count]
+        elif _type == "nominal":
+            nominal_idx = [x for i, x in enumerate(self.attr_types) if x == "nominal" and i < self.features_count]
+            return self.data[:, nominal_idx]
+        elif _type == "continuous":
+            continuous_idx = [x for i, x in enumerate(self.attr_types) if
+                              x in ["continuous", "ordinal"] and i < self.features_count]
+            return self.data[:, continuous_idx]
         else:
             raise Exception("Bad feature _type, must be 'nominal', 'continuous', or None.")
 
     def get_labels(self, _type=None):
         if _type is None:
-            return self.data[:,-self.label_count:]
-
-
+            return self.data[:, -self.label_count:]
+        elif _type == "nominal":
+            nominal_idx = [x for i, x in enumerate(self.attr_types) if x == "nominal" and i >= self.features_count]
+            return self.data[:, nominal_idx]
+        elif _type == "continuous":
+            continuous_idx = [x for i, x in enumerate(self.attr_types) if
+                              x in ["continuous", "ordinal"] and i >= self.features_count]
+            return self.data[:, continuous_idx]
+        else:
+            raise Exception("Bad feature _type, must be 'nominal', 'continuous', or None.")
 
     @property
     def attr_name(self, col):
@@ -216,13 +231,13 @@ class Arff:
             and features of arff file are shuffled.
         """
         if not buddy:
-          np.random.shuffle(self.data)
-        else: # need same number of rows
-          if (self.data.shape[0] != buddy.data.shape[0]):
-              raise Exception
-          temp = np.hstack((self.data, buddy.data))
-          np.random.shuffle(temp)
-          self.data, buddy.data = temp[:,:self.cols], temp[:,self.cols:]
+            np.random.shuffle(self.data)
+        else:  # need same number of rows
+            if (self.data.shape[0] != buddy.data.shape[0]):
+                raise Exception
+            temp = np.hstack((self.data, buddy.data))
+            np.random.shuffle(temp)
+            self.data, buddy.data = temp[:, :self.cols], temp[:, self.cols:]
 
     def column_mean(self, col):
         """Get the mean of the specified column"""
@@ -249,10 +264,10 @@ class Arff:
     def normalize(self):
         """Normalize each column of continuous values"""
         for i in range(self.cols):
-            if self.value_count(i) == 0:     # is continuous
+            if self.value_count(i) == 0:  # is continuous
                 min_val = self.column_min(i)
                 max_val = self.column_max(i)
-                self.data[:,i] = (self.data[:,i] - min_val) / (max_val - min_val)
+                self.data[:, i] = (self.data[:, i] - min_val) / (max_val - min_val)
 
     def get_arff_as_string(self):
         """ Print arff class as arff-style string
@@ -260,17 +275,17 @@ class Arff:
                 string
         """
         out_string = ""
-        out_string += "@RELATION {}".format(self.dataset_name)+ "\n"
+        out_string += "@RELATION {}".format(self.dataset_name) + "\n"
         for i in range(len(self.attr_names)):
             out_string += "@ATTRIBUTE {}".format(self.attr_names[i])
             if self.value_count(i) == 0:
-                out_string += (" CONTINUOUS")+ "\n"
+                out_string += (" CONTINUOUS") + "\n"
             else:
-                out_string += (" {{{}}}".format(", ".join(self.enum_to_str[i].values())))+ "\n"
+                out_string += (" {{{}}}".format(", ".join(self.enum_to_str[i].values()))) + "\n"
 
-        out_string += ("@DATA")+ "\n"
-        for i in range(self.rows):
-            r = self.row(i)
+        out_string += ("@DATA") + "\n"
+        for i in range(self.shape[0]):
+            r = self[i]
 
             values = []
             for j in range(len(r)):
@@ -281,7 +296,7 @@ class Arff:
 
             # values = list(map(lambda j: str(r[j]) if self.value_count(j) == 0 else self.enum_to_str[j][r[j]],
             #                   range(len(r))))
-            out_string += ("{}".format(", ".join(values)))+ "\n"
+            out_string += ("{}".format(", ".join(values))) + "\n"
 
         return out_string
 
@@ -314,8 +329,8 @@ class Arff:
             columns (array-like): columns can be an Arff, numpy array, or list
         """
         columns_to_add = self.nd_array(columns)
-        if self.rows != columns_to_add.shape[0]:
-            raise Exception("Incompatible number of rows: {}, {}".format(self.rows,columns_to_add.shape[0]))
+        if self.shape[0] != columns_to_add.shape[0]:
+            raise Exception("Incompatible number of rows: {}, {}".format(self.shape[0], columns_to_add.shape[0]))
         self.data = np.concatenate([self.data, columns_to_add], axis=1)
         return self
 
@@ -325,9 +340,9 @@ class Arff:
             rows (array-like): rows can be a Arff, numpy array, or list
         """
         rows_to_add = self.nd_array(rows)
-        if self.cols != rows_to_add.shape[1]:
-            raise Exception("Incompatible number of columns: {}, {}".format(self.cols, rows_to_add.shape[1]))
-        self.data = np.concatenate([self.data, rows_to_add],axis=0)
+        if self.shape[1] != rows_to_add.shape[1]:
+            raise Exception("Incompatible number of columns: {}, {}".format(self.shape[1], rows_to_add.shape[1]))
+        self.data = np.concatenate([self.data, rows_to_add], axis=0)
         return self
 
     def __getitem__(self, index):
@@ -337,9 +352,9 @@ class Arff:
         Returns:
             array-like object
         """
-        #if isinstance(index, tuple):
+        # if isinstance(index, tuple):
         #    return self.data[index]
-        #elif isinstance(index, slice)
+        # elif isinstance(index, slice)
         # foo[1:2]
         return self.data[index]
 
@@ -353,4 +368,4 @@ class Arff:
     @property
     def shape(self):
         return self.data.shape
-    #__iter__() and __getitem__()
+    # __iter__() and __getitem__()
