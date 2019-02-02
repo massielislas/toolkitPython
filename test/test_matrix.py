@@ -1,7 +1,7 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 
 from unittest import TestCase,TestLoader,TextTestRunner
-from .matrix import Matrix
+from toolkit.arff import Arff
 import numpy as np
 import os
 from toolkit import utils
@@ -14,7 +14,7 @@ class TestMatrix(TestCase):
 
         # NOTE: for discrete attributes, at least one value must be a float in order for numpy array
         # functions to work properly.
-        m = Matrix()
+        m = Arff()
         m.attr_names = ['A', 'B', 'C']
         m.str_to_enum = [{}, {}, {'R': 0, 'G': 1, 'B': 2}]
         m.enum_to_str = [{}, {}, {0: 'R', 1: 'G', 2: 'B'}]
@@ -23,7 +23,7 @@ class TestMatrix(TestCase):
                   [4.1, self.infinity, 2]])
         self.m = m
 
-        m2 = Matrix()
+        m2 = Arff()
         m2.attr_names = ['A', 'B', 'C', 'D', 'E']
         m2.str_to_enum = [{}, {}, {}, {}, {'R': 0, 'G': 1, 'B': 2}]
         m2.enum_to_str = [{}, {}, {}, {}, {0: 'R', 1: 'G', 2: 'B'}]
@@ -35,7 +35,7 @@ class TestMatrix(TestCase):
         self.m2 = m2
 
     def test_init_from(self):
-        m2 = Matrix(self.m, 1, 1, 2, 2)
+        m2 = Arff(self.m, 1, 1, 2, 2)
         self.assertListEqual(m2.row(0).tolist(), [-8, 2])
         self.assertListEqual(m2.row(1).tolist(), [self.infinity, 2])
 
@@ -48,13 +48,13 @@ class TestMatrix(TestCase):
         self.assertListEqual(self.m.row(9).tolist(), self.m2.row(4)[2:].tolist())
 
     def test_set_size(self):
-        m = Matrix()
+        m = Arff()
         m.set_size(3, 4)
         self.assertEqual(m.rows, 3)
         self.assertEqual(m.cols, 4)
 
     def test_load_arff(self):
-        t = Matrix()
+        t = Arff()
         data_path = "./datasets/iris.arff"
         url = "http://axon.cs.byu.edu/data/uci_class/iris.arff"
         utils.save_arff(url, data_path)
@@ -123,7 +123,7 @@ class TestMatrix(TestCase):
 
 
     def test_append_rows(self):
-        test_matrix = Matrix(self.m)
+        test_matrix = Arff(self.m)
 
         # Verify it works with other matrices
         test_matrix.append_rows(test_matrix)
@@ -145,7 +145,7 @@ class TestMatrix(TestCase):
 
 
     def test_append_columns(self):
-        test_matrix = Matrix(self.m)
+        test_matrix = Arff(self.m)
 
         # Verify it works with other matrices
         test_matrix.append_columns(test_matrix)
@@ -166,5 +166,6 @@ class TestMatrix(TestCase):
 
 
 
-suite = TestLoader().loadTestsFromTestCase(TestMatrix)
-TextTestRunner(verbosity=2).run(suite)
+if __name__=="__main__":
+    suite = TestLoader().loadTestsFromTestCase(TestMatrix)
+    TextTestRunner(verbosity=2).run(suite)

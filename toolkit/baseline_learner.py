@@ -1,7 +1,7 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 
 from .supervised_learner import SupervisedLearner
-from .matrix import Matrix
+from .arff import Arff
 
 
 class BaselineLearner(SupervisedLearner):
@@ -20,11 +20,11 @@ class BaselineLearner(SupervisedLearner):
     def train(self, features, labels):
         """
         This function should loop through the data and create/update a ML model until some stopping criteria is reached
-        :type features: Matrix
-        :type labels: Matrix
+        :type features: Arff
+        :type labels: Arff
         """
         self.average_label = []
-        for i in range(labels.cols):
+        for i in labels:
             if labels.value_count(i) == 0:
                 self.average_label += [labels.column_mean(i)]          # continuous
             else:

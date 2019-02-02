@@ -2,7 +2,7 @@ from __future__ import (absolute_import, division, print_function, unicode_liter
 
 from .supervised_learner import SupervisedLearner
 from .baseline_learner import BaselineLearner
-from .matrix import Matrix
+from .arff import Arff
 import random
 import argparse
 import time
@@ -10,6 +10,16 @@ import sys
 import textwrap
 import inspect
 import warnings
+import numpy as np
+
+""" IDEAS:
+
+* Still support END-TO-END commandline stuff
+* Also support: read in arff file, feed arff to learner, feed in learner to session
+* ARFF class: keep track of feature types!!
+
+"""
+
 
 class MLSystemManager:
     """ This class manages Toolkit sessions. Each session is initiated with a specific dataset (arff file), evaluation type (training, test, etc.), and learner.
@@ -29,14 +39,18 @@ class MLSystemManager:
 
     def create_new_session(self, arff_file, learner, eval_method, eval_parameter=None, print_confusion_matrix=False, normalize=False, random_seed=None):
         """
-        :param arff_file: (str) Path to arff file
-        :param learner: (learner) A "Learner" class object
-        :param eval_method: (str) String of evaluation method (training, static, random, )
-        :param eval_parameter: (str) Parameter for eval method
-        :param print_confusion_matrix: (bool) Whether to print confusion matrix for classification
-        :param normalize: (bool) whether to normalize data
-        :param random_seed: (int) Seed to initialize random number generator (e.g. to make results deterministic)
-        :return:
+
+        Args:
+            arff_file (str): Path to arff file
+            learner (learner): A "Learner" class object
+            eval_method (str): String of evaluation method (training, static, random, )
+            eval_parameter (str): Parameter for eval method
+            print_confusion_matrix (bool): Whether to print confusion matrix for classification
+            normalize (bool): whether to normalize data
+            random_seed (int): Seed to initialize random number generator (e.g. to make results deterministic
+
+        Returns:
+
         """
         new_session = ToolkitSession(arff_file=arff_file, learner=learner, eval_method=eval_method,
                                    eval_parameter=eval_parameter, print_confusion_matrix=print_confusion_matrix,
@@ -108,9 +122,8 @@ class MLSystemManager:
         return new_session
 
 class ToolkitSession:
-    def __init__(self, arff_file, learner, eval_method, eval_parameter=None, print_confusion_matrix=False, normalize=False, random_seed=None):
+    def __init__(self, arff_file, learner, eval_method=None, eval_parameter=None, print_confusion_matrix=False, normalize=False, random_seed=None):
         # parse the command-line arguments
-
 
         if random_seed:
             random.seed(random_seed)
@@ -129,103 +142,98 @@ class ToolkitSession:
         self.normalize = normalize
 
         # load the ARFF file
-        self.data = Matrix()
-        self.data.load_arff(arff_file)
+        self.arff = Arff()
+        self.arff.load_arff(arff_file)
         if self.normalize:
             print("Using normalized data")
-            self.data.normalize()
+            self.arff.normalize()
 
         # print some stats
         print("\nDataset name: {}\n"
               "Number of instances: {}\n"
               "Number of attributes: {}\n"
               "Learning algorithm: {}\n"
-              "Evaluation method: {}\n".format(arff_file, self.data.rows, self.data.cols, self.learner_name, self.eval_method))
-        self.main()
+              "Evaluation method: {}\n".format(arff_file, self.arff.shape[0], self.arff.shape[1], self.learner_name, self.eval_method))
+
+        if not eval_method is None:
+            self.main()
 
     def main(self):
         if self.eval_method == "training":
-            print("Calculating accuracy on training set...")
-
-            features = Matrix(self.data, 0, 0, self.data.rows, self.data.cols-1)
-            labels = Matrix(self.data, 0, self.data.cols-1, self.data.rows, 1)
-            confusion = Matrix()
-            start_time = time.time()
-            self.learner.train(features, labels)
-            elapsed_time = time.time() - start_time
-            print("Time to train (in seconds): {}".format(elapsed_time))
-            accuracy = self.learner.measure_accuracy(features, labels, confusion)
-            print("Training set accuracy: " + str(accuracy))
-
-            if self.print_confusion_matrix:
-                print("\nConfusion matrix: (Row=target value, Col=predicted value)")
-                confusion.print()
-                print("")
+            self.train()
+        elif self.eval_method == "random":
+            train_features, train_labels, test_features, test_labels = self.training_test_split(
+                train_percent=self.eval_parameter)
+            self.train(train_features, train_labels)
+            self.test(test_features, test_labels)
 
         elif self.eval_method == "static":
-
-            print("Calculating accuracy on separate test set...")
-
-            test_data = Matrix(arff=self.eval_parameter)
+            self.train()
+            arff_file = self.eval_parameter
+            test_data = Arff(arff_file)
             if self.normalize:
                 test_data.normalize()
+            self.test(features=test_data.get_features(), labels=test_data.get_labels())
 
-            print("Test set name: {}".format(self.eval_parameter))
-            print("Number of test instances: {}".format(test_data.rows))
-            features = Matrix(self.data, 0, 0, self.data.rows, self.data.cols-1)
-            labels = Matrix(self.data, 0, self.data.cols-1, self.data.rows, 1)
+        elif self.eval_method == "cross":
+            self.cross_validate()
 
-            start_time = time.time()
-            self.learner.train(features, labels)
-            elapsed_time = time.time() - start_time
-            print("Time to train (in seconds): {}".format(elapsed_time))
+    def training_test_split(self, train_percent=.9):
+        self.arff.shuffle()
 
-            train_accuracy = self.learner.measure_accuracy(features, labels)
-            print("Training set accuracy: {}".format(train_accuracy))
+        print("Calculating accuracy on a random hold-out set...")
+        train_percent = float(train_percent)
+        if train_percent < 0 or train_percent > 1:
+            raise Exception("Percentage for random evaluation must be between 0 and 1")
+        print("Percentage used for training: {}".format(train_percent))
+        print("Percentage used for testing: {}".format(1 - train_percent))
 
-            test_features = Matrix(test_data, 0, 0, test_data.rows, test_data.cols-1)
-            test_labels = Matrix(test_data, 0, test_data.cols-1, test_data.rows, 1)
-            confusion = Matrix()
-            test_accuracy = self.learner.measure_accuracy(test_features, test_labels, confusion)
-            print("Test set accuracy: {}".format(test_accuracy))
+        train_size = int(train_percent * self.arff.shape[0])
 
-            if self.print_confusion_matrix:
-                print("\nConfusion matrix: (Row=target value, Col=predicted value)")
-                confusion.print()
-                print("")
+        train_features = self.arff.get_features()[0:train_size]
+        train_labels = self.arff.get_labels()[0:train_size]
 
-        elif self.eval_method == "random":
+        test_features = self.arff.get_features()[train_size:]
+        test_labels = self.arff.get_labels()[0:train_size]
+        return train_features, train_labels, test_features, test_labels
+
+    def train(self, features=None, labels=None):
+        """By default, this trains on entire arff file. Features and labels options are given to e.g.
+            train on only a part of the data
+        Args:
+            features (array-like):
+            labels (array-like):
+        Returns:
+
+        """
+        print("Calculating accuracy on training set...")
+
+        if features is None:
+            features = self.arff.get_features()
+        if labels is None:
+            labels = self.arff.get_labels()
+
+        confusion = Arff()
+        start_time = time.time()
+        self.learner.train(features, labels)
+        elapsed_time = time.time() - start_time
+        print("Time to train (in seconds): {}".format(elapsed_time))
+        accuracy = self.learner.measure_accuracy(features, labels, confusion)
+        print("Training set accuracy: " + str(accuracy))
+
+        if self.print_confusion_matrix:
+            print("\nConfusion matrix: (Row=target value, Col=predicted value)")
+            confusion.print()
+            print("")
+
+
+    def test(self, features, labels):
             """ This eval_method 1) creates a 'random' training/test split according to some user-specified percentage,
                             2) trains the data
                             3) reports training AND test accuracy
             """
-
-            print("Calculating accuracy on a random hold-out set...")
-            train_percent = float(self.eval_parameter)
-            if train_percent < 0 or train_percent > 1:
-                raise Exception("Percentage for random evaluation must be between 0 and 1")
-            print("Percentage used for training: {}".format(train_percent))
-            print("Percentage used for testing: {}".format(1 - train_percent))
-
-            self.data.shuffle()
-
-            train_size = int(train_percent * self.data.rows)
-            train_features = Matrix(self.data, 0, 0, train_size, self.data.cols-1)
-            train_labels = Matrix(self.data, 0, self.data.cols-1, train_size, 1)
-
-            test_features = Matrix(self.data, train_size, 0, self.data.rows - train_size, self.data.cols-1)
-            test_labels = Matrix(self.data, train_size, self.data.cols-1, self.data.rows - train_size, 1)
-
-            start_time = time.time()
-            self.learner.train(train_features, train_labels)
-            elapsed_time = time.time() - start_time
-            print("Time to train (in seconds): {}".format(elapsed_time))
-
-            train_accuracy = self.learner.measure_accuracy(train_features, train_labels)
-            print("Training set accuracy: {}".format(train_accuracy))
-
-            confusion = Matrix()
-            test_accuracy = self.learner.measure_accuracy(test_features, test_labels, confusion)
+            confusion = Arff()
+            test_accuracy = self.learner.measure_accuracy(features, features, confusion)
             print("Test set accuracy: {}".format(test_accuracy))
 
             if self.print_confusion_matrix:
@@ -233,46 +241,51 @@ class ToolkitSession:
                 confusion.print()
                 print("")
 
-        elif self.eval_method == "cross":
+    def generate_fold(self, folds):
+        for i in range(folds):
+            start_test = int(i * self.arff.shape[0] / folds)
+            end_test = int((i + 1) * self.arff.shape[0] / folds)
 
-            print("Calculating accuracy using cross-validation...")
+            train_features = self.arff.get_features()[np.r_[0:start_test, end_test:]]
+            train_labels = self.arff.get_labels()[np.r_[0:start_test, end_test:]]
 
-            folds = int(self.eval_parameter)
-            if folds <= 0:
-                raise Exception("Number of folds must be greater than 0")
-            print("Number of folds: {}".format(folds))
-            reps = 1
-            sum_accuracy = 0.0
-            elapsed_time = 0.0
-            for j in range(reps):
-                self.data.shuffle()
-                for i in range(folds):
-                    begin = int(i * self.data.rows / folds)
-                    end = int((i + 1) * self.data.rows / folds)
+            test_features = self.arff.get_features()[start_test:end_test]
+            test_labels = self.arff.get_labels()[start_test:end_test]
+            yield train_features, train_labels, test_features, test_labels
 
-                    train_features = Matrix(self.data, 0, 0, begin, self.data.cols-1)
-                    train_labels = Matrix(self.data, 0, self.data.cols-1, begin, 1)
+    def cross_validate(self, reps, folds):
+        print("Calculating accuracy using cross-validation...")
 
-                    test_features = Matrix(self.data, begin, 0, end - begin, self.data.cols-1)
-                    test_labels = Matrix(self.data, begin, self.data.cols-1, end - begin, 1)
+        folds = int(self.eval_parameter)
+        if folds <= 0:
+            raise Exception("Number of folds must be greater than 0")
+        print("Number of folds: {}".format(folds))
+        reps = 1
+        sum_accuracy = 0.0
+        elapsed_time = 0.0
 
-                    train_features.add(self.data, end, 0, self.data.cols - 1)
-                    train_labels.add(self.data, end, self.data.cols - 1, 1)
+        for rep_counter in range(reps):
+            self.arff.shuffle()
 
-                    start_time = time.time()
-                    self.learner.train(train_features, train_labels)
-                    elapsed_time += time.time() - start_time
+            for fold_counter, train_features, train_labels, test_features, test_labels in enumerate(self.generate_fold(folds)):
+                start_time = time.time()
 
-                    accuracy = self.learner.measure_accuracy(test_features, test_labels)
-                    sum_accuracy += accuracy
-                    print("Rep={}, Fold={}, Accuracy={}".format(j, i, accuracy))
+                # Train model
+                self.learner.train(train_features, train_labels)
+                elapsed_time += time.time() - start_time
 
-            elapsed_time /= (reps * folds)
-            print("Average time to train (in seconds): {}".format(elapsed_time))
-            print("Mean accuracy={}".format(sum_accuracy / (reps * folds)))
+                # Get test accuracy
+                accuracy = self.learner.measure_accuracy(test_features, test_labels)
+                sum_accuracy += accuracy
+                print("Rep={}, Fold={}, Accuracy={}".format(rep_counter, fold_counter, accuracy))
 
-        else:
-            raise Exception("Unrecognized evaluation method '{}'".format(self.eval_method))
+
+                elapsed_time /= (reps * folds)
+                print("Average time to train (in seconds): {}".format(elapsed_time))
+                print("Mean accuracy={}".format(sum_accuracy / (reps * folds)))
+
+            else:
+                raise Exception("Unrecognized evaluation method '{}'".format(self.eval_method))
 
 
 class ToolkitArgParser(argparse.ArgumentParser):

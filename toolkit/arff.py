@@ -5,52 +5,58 @@ import numpy as np
 from scipy import stats
 import re
 
-class Matrix:
+class Arff:
 
     """
-    Unlike the Matrix class defined in toolkit (C++) and toolkitJava,
-    data is an array of columns rather than an array of rows.
-    This makes computing statistics on columns more efficient.
+    Contains arff file data.
 
     For discrete attributes, at least one value must be a float in
     order for numpy array functions to work properly. (The load_arff
     function ensures that all values are read as floats.)
     """
-    def __init__(self, matrix=None, row_start=None, col_start=None, row_count=None, col_count=None, arff=None):
+
+    def __init__(self, arff=None, row_start=None, col_start=None, row_count=None, col_count=None, label_count=1):
         """
-        If matrix is provided, all parameters must be provided, and the new matrix will be
-        initialized with the specified portion of the provided matrix.
+
+        Args:
+            arff (str or Arff object): Path to arff file or another arff file
+            row_start (int):
+            col_start (int):
+            row_count (int):
+            col_count (int):
+            label_count (int):
         """
+
         self.data = None
         self.attr_names = []
-        self.str_to_enum = []       # array of dictionaries
-        self.enum_to_str = []       # array of dictionaries
+        self.str_to_enum = []       # list of dictionaries
+        self.enum_to_str = []       # list of dictionaries
         self.dataset_name = "Untitled"
         self.MISSING = float("infinity")
 
-        if arff:
-            self.load_arff(arff)
-        elif matrix:
+        # Make a copy of arff file
+        if isinstance(arff, Arff):
             if row_start is None:
                 row_start = 0
             if col_start is None:
                 col_start = 0
             if row_count is None:
-                row_count = matrix.rows
+                row_count = arff.rows
             if col_count is None:
-                col_count = matrix.cols
-            self.init_from(matrix, row_start, col_start, row_count, col_count)
+                col_count = arff.cols
+            self.init_from(arff, row_start, col_start, row_count, col_count)
+        elif isinstance(arff, str): # load from path
+            self.load_arff(arff)
         else:
             pass
-            # Confusion matrix needs to be initialized but have nothing in it
-        
+        self.label_count = label_count
+
     def init_from(self, matrix, row_start, col_start, row_count, col_count):
         """Initialize the matrix with a portion of another matrix"""
         self.data = matrix.data[row_start:row_start+row_count, col_start:col_start+col_count]
         self.attr_names = matrix.attr_names[col_start:col_start+col_count]
         self.str_to_enum = matrix.str_to_enum[col_start:col_start+col_count]
         self.enum_to_str = matrix.enum_to_str[col_start:col_start+col_count]
-        return self
 
     def add(self, matrix, row_start, col_start, col_count):
         """Appends a copy of the specified portion of a matrix to this matrix"""
@@ -67,8 +73,8 @@ class Matrix:
         """Resize this matrix (and set all attributes to be continuous)"""
         self.data = np.zeros((rows, cols))
         self.attr_names = [""] * cols
-        self.str_to_enum = {}
-        self.enum_to_str = {}
+        self.str_to_enum = []
+        self.enum_to_str = []
 
     def load_arff(self, filename):
         """Load matrix from an ARFF file"""
@@ -144,34 +150,40 @@ class Matrix:
         self.data = np.array(rows)
 
     @property
-    def rows(self):
+    def instance_count(self):
         """Get the number of rows in the matrix"""
         return self.data.shape[0]
 
     @property
-    def cols(self):
+    def features_count(self):
         """Get the number of columns (or attributes) in the matrix"""
-        return self.data.shape[1]
+        return self.data.shape[1]-self.label_count
 
-    def row(self, n):
-        """Get the specified row"""
-        return self.data[n]
+    def get_features(self, _type=None):
+        """ Return features as 2D array
 
-    def col(self, n):
-        """Get the specified column"""
-        return self.data[:,n]
+        Args:
+            _type: Optionally specify 'nominal' or 'continuous' to return appropriate subset of features
 
-    def get(self, row, col):
+        Returns:
+
         """
-        Get the element at the specified row and column
-        :rtype: float
-        """
-        return self.data[row, col]
+        if _type is None:
+            return self.data[:,0:-self.label_count]
+        elif _type=="nominal":
+            return self.data[:,0:-self.label_count]
+        elif _type=="continuous":
+            return self.data[:, 0:-self.label_count]
+        else:
+            raise Exception("Bad feature _type, must be 'nominal', 'continuous', or None.")
 
-    def set(self, row, col, val):
-        """Set the value at the specified row and column"""
-        self.data[row, col] = val
+    def get_labels(self, _type=None):
+        if _type is None:
+            return self.data[:,-self.label_count:]
 
+
+
+    @property
     def attr_name(self, col):
         """Get the name of the specified attribute"""
         return self.attr_names[col]
@@ -179,6 +191,9 @@ class Matrix:
     def set_attr_name(self, col, name):
         """Set the name of the specified attribute"""
         self.attr_names[col] = name
+
+    def get_attr_names(self):
+        return self.attr_names
 
     def attr_value(self, attr, val):
         """
@@ -197,10 +212,12 @@ class Matrix:
         return len(self.enum_to_str[col]) if len(self.enum_to_str) > 0 else 0
 
     def shuffle(self, buddy=None):
-        """Shuffle the row order. If a buddy Matrix is provided, it will be shuffled in the same order."""
+        """Shuffle the row order. If a buddy Matrix is provided, it will be shuffled in the same order. By default, labels
+            and features of arff file are shuffled.
+        """
         if not buddy:
           np.random.shuffle(self.data)
-        else:
+        else: # need same number of rows
           if (self.data.shape[0] != buddy.data.shape[0]):
               raise Exception
           temp = np.hstack((self.data, buddy.data))
@@ -237,8 +254,8 @@ class Matrix:
                 max_val = self.column_max(i)
                 self.data[:,i] = (self.data[:,i] - min_val) / (max_val - min_val)
 
-    def get_matrix_as_arff(self):
-        """ Get representation of matrix as arff-style string
+    def get_arff_as_string(self):
+        """ Print arff class as arff-style string
             Returns:
                 string
         """
@@ -269,20 +286,20 @@ class Matrix:
         return out_string
 
     def __str__(self):
-        return self.get_matrix_as_arff()
+        return self.get_arff_as_string()
 
     def print(self):
         print(self)
 
     def nd_array(self, obj):
-        """ Convert a matrix, list, or numpy array to numpy array
+        """ Convert an arff, list, or numpy array to numpy array
         Args:
             obj (array-like): An object to be converted
         Returns
             numpy array
         """
 
-        if isinstance(obj, Matrix):
+        if isinstance(obj, Arff):
             return obj.data
         elif isinstance(obj, list):
             return np.ndarray(obj)
@@ -292,9 +309,9 @@ class Matrix:
             raise Exception("Unrecognized data type")
 
     def append_columns(self, columns):
-        """ Add columns to matrix. Number of rows must match existing Matrix.
+        """ Add columns from 2D array-like object to "data" object (2D numpy array). Number of rows must match existing 2D numpy array.
         Args:
-            columns (array-like): columns can be a Matrix, numpy array, or list
+            columns (array-like): columns can be an Arff, numpy array, or list
         """
         columns_to_add = self.nd_array(columns)
         if self.rows != columns_to_add.shape[0]:
@@ -303,9 +320,9 @@ class Matrix:
         return self
 
     def append_rows(self, rows):
-        """ Add rows to matrix. Number of columns must match existing Matrix.
+        """ Add rows from 2D array-like object to "data" object (2D numpy array). Number of columns must match existing 2D numpy array.
         Args:
-            rows (array-like): rows can be a Matrix, numpy array, or list
+            rows (array-like): rows can be a Arff, numpy array, or list
         """
         rows_to_add = self.nd_array(rows)
         if self.cols != rows_to_add.shape[1]:
@@ -313,3 +330,27 @@ class Matrix:
         self.data = np.concatenate([self.data, rows_to_add],axis=0)
         return self
 
+    def __getitem__(self, index):
+        """ Trivial wrapper for the 2D Numpy array data
+        Args:
+            index: Index, slice, etc. whatever you would use for Numpy array
+        Returns:
+            array-like object
+        """
+        #if isinstance(index, tuple):
+        #    return self.data[index]
+        #elif isinstance(index, slice)
+        # foo[1:2]
+        return self.data[index]
+
+    def __iter__(self):
+        """
+        Trivial wrapper for looping Numpy 2D array
+        """
+        for i in self.data:
+            yield i
+
+    @property
+    def shape(self):
+        return self.data.shape
+    #__iter__() and __getitem__()

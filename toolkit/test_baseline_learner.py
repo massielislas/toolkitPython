@@ -1,15 +1,14 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 
 from unittest import TestCase,TestLoader,TextTestRunner
-from .baseline_learner import BaselineLearner
-from .matrix import Matrix
-
+from toolkit.baseline_learner import BaselineLearner
+from toolkit.arff import Arff
 
 class TestBaselineLearner(TestCase):
 
-    data = Matrix(arff="test/cm1_req.arff")
-    features = Matrix(data, 0, 0, data.rows, data.cols-1)
-    labels = Matrix(data, 0, data.cols-1, data.rows, 1)
+    data = Arff(arff="../test/cm1_req.arff")
+    features = Arff(data, 0, 0, data.rows, data.cols - 1)
+    labels = Arff(data, 0, data.cols - 1, data.rows, 1)
     learner = BaselineLearner()
 
     def test_train(self):
