@@ -189,7 +189,8 @@ class Arff:
         #     raise Exception("Bad feature _type, must be 'nominal', 'continuous', or None.")
 
     def get_labels(self, _type=None):
-        return self.create_subset_arff(slice(0,-self.label_count), label_count = self.label_count)
+        new_arff = self.create_subset_arff(slice(-self.label_count, None), label_count=self.label_count)
+        return new_arff
 
         # if _type is None:
         #     return self.data[:, -self.label_count:]
