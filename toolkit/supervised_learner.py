@@ -8,7 +8,7 @@ import numpy as np
 
 class SupervisedLearner:
 
-    def train(self, features, labels, nominal_idx=None):
+    def train(self, features, labels):
         """
         Before you call this method, you need to divide your data
         into a feature matrix and a label matrix.
@@ -27,7 +27,7 @@ class SupervisedLearner:
         """
         raise NotImplementedError
 
-    def measure_accuracy(self, features, labels, confusion=None):
+    def measure_accuracy(self, features, labels, confusion=None, method=None):
         """
         The model must be trained before you call this method. If the label is nominal,
         it returns the predictive accuracy. If the label is continuous, it returns
@@ -39,6 +39,18 @@ class SupervisedLearner:
         :rtype float
         """
 
+        if method==None:
+            if isinstance(labels, Arff):
+                if labels.value_count()>0:
+                    method = "accuracy"
+                    label_count = labels.value_count()
+                else:
+                    method = "sse"
+
+            # elif isinstance(labels, np.ndarray):
+            #     unique_labels = np.unique(labels)
+            #     label_count = len(unique_labels)
+
         if features.shape[0] != labels.shape[0]:
             raise Exception("Expected the features and labels to have the same number of rows")
         if labels.shape[1] != 1:
@@ -46,8 +58,7 @@ class SupervisedLearner:
         if features.shape[0] == 0:
             raise Exception("Expected at least one row")
 
-        label_values_count = labels.value_count(0)
-        if label_values_count == 0:
+        if method == "sse":
             # label is continuous
             pred = [0.0]
             sse = 0.0
@@ -62,11 +73,12 @@ class SupervisedLearner:
                 sse += delta**2
             return math.sqrt(sse / features.shape[0])
 
-        else:
+        elif method == "accuracy":
+
             # label is nominal, so measure predictive accuracy
-            if confusion:
-                confusion.set_size(label_values_count, label_values_count)
-                confusion.attr_names = [labels.attr_value(0, i) for i in range(label_values_count)]
+            if confusion: # this assumes arff-class labels
+                confusion.set_size(label_count, label_count)
+                confusion.attr_names = [labels.attr_value(0, i) for i in labels]
 
             correct_count = 0
             prediction = []
@@ -76,7 +88,7 @@ class SupervisedLearner:
 
                 if len(prediction) > 0:
                     del prediction[:]
-                if targ >= label_values_count:
+                if targ >= label_count:
                     raise Exception("The label is out of range")
 
                 # Assume predictions are integers 0-# of classes

@@ -127,8 +127,11 @@ class MLSystemManager:
         return new_session
 
 class ToolkitSession:
-    """ Toolkit session is given a learner with an associated arff file. Session can then be used to
-
+    """ Toolkit session is given a learner with an associated arff file.
+        Notes:
+            * A learner class can be passed without instantiation. It will be created when the session is started.
+                * Learner keyword arguments can be passed to the session
+                * A learner class can also already be instantiated when passed
     """
     def __init__(self, arff_file, learner, eval_method=None, eval_parameter=None, print_confusion_matrix=False, normalize=False, random_seed=None, **kwargs):
         # parse the command-line arguments
@@ -173,15 +176,15 @@ class ToolkitSession:
 
     def main(self):
         if self.eval_method == "training":
-            self.train(self.arff.get_features(), self.arff.get_labels(), self.arff.get_nominal_idx())
+            self.train(self.arff.get_features(), self.arff.get_labels() )
         elif self.eval_method == "random":
             train_features, train_labels, test_features, test_labels = self.training_test_split(
                 train_percent=self.eval_parameter)
-            self.train(train_features, train_labels, self.arff.get_nominal_idx())
+            self.train(train_features, train_labels )
             self.test(test_features, test_labels)
 
         elif self.eval_method == "static":
-            self.train(self.arff.get_features(), self.arff.get_labels(), self.arff.get_nominal_idx())
+            self.train(self.arff.get_features(), self.arff.get_labels() )
             arff_file = self.eval_parameter
             test_data = Arff(arff_file)
             if self.normalize:
@@ -210,7 +213,7 @@ class ToolkitSession:
         test_labels = self.arff.get_labels()[0:train_size]
         return train_features, train_labels, test_features, test_labels
 
-    def train(self, features=None, labels=None, nominal_idx=None):
+    def train(self, features=None, labels=None):
         """By default, this trains on entire arff file. Features and labels options are given to e.g.
             train on only a part of the data
         Args:
@@ -225,12 +228,13 @@ class ToolkitSession:
             features = self.arff.get_features()
         if labels is None:
             labels = self.arff.get_labels()
-        if nominal_idx is None:
-            nominal_idx = self.arff.get_nominal_idx()
 
-        confusion = Arff()
+        confusion = None
+        if self.print_confusion_matrix and labels.value_count()>0:
+            confusion = Arff(np.zeros([labels.value_count(),labels.value_count()]))
+
         start_time = time.time()
-        self.learner.train(features, labels, nominal_idx=nominal_idx)
+        self.learner.train(features, labels)
         elapsed_time = time.time() - start_time
         print("Time to train (in seconds): {}".format(elapsed_time))
         accuracy = self.learner.measure_accuracy(features, labels, confusion)
@@ -287,7 +291,7 @@ class ToolkitSession:
                 start_time = time.time()
 
                 # Train model
-                self.learner.train(train_features, train_labels, self.arff.get_nominal_idx())
+                self.learner.train(train_features, train_labels)
                 elapsed_time += time.time() - start_time
                 training_accuracy = self.learner.measure_accuracy(train_features, train_labels)
 

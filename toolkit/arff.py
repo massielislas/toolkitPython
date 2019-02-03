@@ -35,29 +35,31 @@ class Arff:
         self.dataset_name = "Untitled"
         self.MISSING = float("infinity")
 
-        # Make a copy of arff file
-        if isinstance(arff, Arff):
-            if row_start is None:
-                row_start = 0
-            if col_start is None:
-                col_start = 0
-            if row_count is None:
-                row_count = arff.rows
-            if col_count is None:
-                col_count = arff.cols
+        if isinstance(arff, Arff): # Make a copy of arff file
             self.init_from(arff, row_start, col_start, row_count, col_count)
         elif isinstance(arff, str):  # load from path
             self.load_arff(arff)
+        elif isinstance(arff, np.ndarray): # convert 2D numpy array to arff
+            self.data = arff
         else:
             pass
         self.label_count = label_count
 
-    def init_from(self, matrix, row_start, col_start, row_count, col_count):
+    def init_from(self, arff, row_start, col_start, row_count, col_count):
         """Initialize the matrix with a portion of another matrix"""
-        self.data = matrix.data[row_start:row_start + row_count, col_start:col_start + col_count]
-        self.attr_names = matrix.attr_names[col_start:col_start + col_count]
-        self.str_to_enum = matrix.str_to_enum[col_start:col_start + col_count]
-        self.enum_to_str = matrix.enum_to_str[col_start:col_start + col_count]
+        if row_start is None:
+            row_start = 0
+        if col_start is None:
+            col_start = 0
+        if row_count is None:
+            row_count = arff.shape[0]
+        if col_count is None:
+            col_count = arff.shape[1]
+
+        self.data = arff.data[row_start:row_start + row_count, col_start:col_start + col_count]
+        self.attr_names = arff.attr_names[col_start:col_start + col_count]
+        self.str_to_enum = arff.str_to_enum[col_start:col_start + col_count]
+        self.enum_to_str = arff.enum_to_str[col_start:col_start + col_count]
 
     def set_size(self, rows, cols):
         """Resize this matrix (and set all attributes to be continuous)"""
@@ -153,6 +155,16 @@ class Arff:
         """Get the number of columns (or attributes) in the matrix"""
         return self.data.shape[1] - self.label_count
 
+    def create_subset_arff(self, col_idx, label_count=None):
+        new_arff = Arff()
+        new_arff.data = self.data[:, col_idx]
+        new_arff.attr_names = self.attr_names[col_idx]
+        new_arff.attr_types = self.attr_types[col_idx]
+        new_arff.str_to_enum = self.str_to_enum[col_idx]
+        new_arff.enum_to_str = self.enum_to_str[col_idx]
+        new_arff.label_count = label_count # this isn't right
+        return new_arff
+
     def get_features(self, _type=None):
         """ Return features as 2D array
 
@@ -162,30 +174,34 @@ class Arff:
         Returns:
 
         """
-        if _type is None:
-            return self.data[:, 0:-self.label_count]
-        elif _type == "nominal":
-            nominal_idx = [x for i, x in enumerate(self.attr_types) if x == "nominal" and i < self.features_count]
-            return self.data[:, nominal_idx]
-        elif _type == "continuous":
-            continuous_idx = [x for i, x in enumerate(self.attr_types) if
-                              x in ["continuous", "ordinal"] and i < self.features_count]
-            return self.data[:, continuous_idx]
-        else:
-            raise Exception("Bad feature _type, must be 'nominal', 'continuous', or None.")
+        return self.create_subset_arff(slice(0,-self.label_count), label_count=0)
+
+        # if _type is None:
+        #     return self.data[:, 0:-self.label_count]
+        # elif _type == "nominal":
+        #     nominal_idx = [x for i, x in enumerate(self.attr_types) if x == "nominal" and i < self.features_count]
+        #     return self.data[:, nominal_idx]
+        # elif _type == "continuous":
+        #     continuous_idx = [x for i, x in enumerate(self.attr_types) if
+        #                       x in ["continuous", "ordinal"] and i < self.features_count]
+        #     return self.data[:, continuous_idx]
+        # else:
+        #     raise Exception("Bad feature _type, must be 'nominal', 'continuous', or None.")
 
     def get_labels(self, _type=None):
-        if _type is None:
-            return self.data[:, -self.label_count:]
-        elif _type == "nominal":
-            nominal_idx = [x for i, x in enumerate(self.attr_types) if x == "nominal" and i >= self.features_count]
-            return self.data[:, nominal_idx]
-        elif _type == "continuous":
-            continuous_idx = [x for i, x in enumerate(self.attr_types) if
-                              x in ["continuous", "ordinal"] and i >= self.features_count]
-            return self.data[:, continuous_idx]
-        else:
-            raise Exception("Bad feature _type, must be 'nominal', 'continuous', or None.")
+        return self.create_subset_arff(slice(0,-self.label_count), label_count = self.label_count)
+
+        # if _type is None:
+        #     return self.data[:, -self.label_count:]
+        # elif _type == "nominal":
+        #     nominal_idx = [x for i, x in enumerate(self.attr_types) if x == "nominal" and i >= self.features_count]
+        #     return self.data[:, nominal_idx]
+        # elif _type == "continuous":
+        #     continuous_idx = [x for i, x in enumerate(self.attr_types) if
+        #                       x in ["continuous", "ordinal"] and i >= self.features_count]
+        #     return self.data[:, continuous_idx]
+        # else:
+        #     raise Exception("Bad feature _type, must be 'nominal', 'continuous', or None.")
 
     @property
     def attr_name(self, col):
@@ -208,12 +224,15 @@ class Arff:
         """
         return self.enum_to_str[attr][val]
 
-    def value_count(self, col):
+    def value_count(self, col=0):
         """
         Get the number of values associated with the specified attribute (or columnn)
         0=continuous, 2=binary, 3=trinary, etc.
         """
         return len(self.enum_to_str[col]) if len(self.enum_to_str) > 0 else 0
+
+    def is_nominal(self, col=0):
+        return self.value_count(col)==0
 
     def shuffle(self, buddy=None):
         """Shuffle the row order. If a buddy Matrix is provided, it will be shuffled in the same order. By default, labels
@@ -226,33 +245,36 @@ class Arff:
                 raise Exception
             temp = np.hstack((self.data, buddy.data))
             np.random.shuffle(temp)
-            self.data, buddy.data = temp[:, :self.cols], temp[:, self.cols:]
+            self.data, buddy.data = temp[:, :self.shape[1]], temp[:, self.shape[1]:]
 
-    def column_mean(self, col):
+    def column_mean(self, col=None):
         """Get the mean of the specified column"""
-
-        col_data = self.col(col)
+        col = slice(0, None) if col is None else col
+        col_data = self.data[:,col]
         return np.mean(col_data[np.isfinite(col_data)])
 
-    def column_min(self, col):
+    def column_min(self, col=None):
         """Get the min value in the specified column"""
-        col_data = self.col(col)
+        col = slice(0, None) if col is None else col
+        col_data = self.data[:,col]
         return np.min(col_data[np.isfinite(col_data)])
 
-    def column_max(self, col):
+    def column_max(self, col=None):
         """Get the max value in the specified column"""
-        col_data = self.col(col)
+        col = slice(0, None) if col is None else col
+        col_data = self.data[:,col]
         return np.max(col_data[np.isfinite(col_data)])
 
-    def most_common_value(self, col):
+    def most_common_value(self, col=None):
         """Get the most common value in the specified column"""
-        col_data = self.col(col)
+        col = slice(0, None) if col is None else col
+        col_data = self.data[:,col]
         (val, count) = stats.mode(col_data[np.isfinite(col_data)])
         return val[0]
 
     def normalize(self):
         """Normalize each column of continuous values"""
-        for i in range(self.cols):
+        for i in self.shape[1]:
             if self.value_count(i) == 0:  # is continuous
                 min_val = self.column_min(i)
                 max_val = self.column_max(i)
@@ -356,6 +378,10 @@ class Arff:
         """
         for i in self.data:
             yield i
+
+    @property
+    def T(self):
+        return self.data.T
 
     def get_dataframe(self):
         import pandas as pd

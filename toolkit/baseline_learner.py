@@ -2,7 +2,7 @@ from __future__ import (absolute_import, division, print_function, unicode_liter
 
 from .supervised_learner import SupervisedLearner
 from .arff import Arff
-
+import numpy as np
 
 class BaselineLearner(SupervisedLearner):
     """
@@ -17,18 +17,18 @@ class BaselineLearner(SupervisedLearner):
         #self. weights = np.random.random((size))
         self.average_label = []
 
-    def train(self, features, labels, nominal_idx=None):
+    def train(self, features, labels):
         """
         This function should loop through the data and create/update a ML model until some stopping criteria is reached
         :type features: Arff
         :type labels: Arff
         """
         self.average_label = []
-        for i in labels:
-            if labels.value_count(i) == 0:
-                self.average_label += [labels.column_mean(i)]          # continuous
+        for i,label in enumerate(labels.T):
+            if labels.is_nominal(i): # assumes 1D label
+                self.average_label += [labels.column_mean()]          # continuous
             else:
-                self.average_label += [labels.most_common_value(i)]    # nominal
+                self.average_label += [labels.most_common_value()]    # nominal
 
     def predict(self, features):
         """
