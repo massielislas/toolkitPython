@@ -233,7 +233,7 @@ class Arff:
         return len(self.enum_to_str[col]) if len(self.enum_to_str) > 0 else 0
 
     def is_nominal(self, col=0):
-        return self.value_count(col)==0
+        return self.value_count(col)>0
 
     def shuffle(self, buddy=None):
         """Shuffle the row order. If a buddy Matrix is provided, it will be shuffled in the same order. By default, labels
