@@ -1,34 +1,12 @@
-from __future__ import (absolute_import, division, print_function, unicode_literals)
-from unittest import TestCase,TestLoader,TextTestRunner
-from toolkit import baseline_learner, utils, manager, arff
+#from toolkit import baseline_learner, manager, arff
 import numpy as np
-import os
-from toolkit import utils
-import subprocess
+#from toolkit import supervised_learner
 
-class TestManager(TestCase):
-
-    infinity = float("infinity")
-
-    def setUp(self):
-
-        ## Download .arff data
-        self.iris_data = "./datasets/iris.arff"
-        iris_url = "http://axon.cs.byu.edu/data/uci_class/iris.arff"
-        utils.save_arff(iris_url, self.iris_data)
-
-    def test_commandline_from_python(self):
-        ## Create manager - from commandline argument
-        args = r'-L baseline -A {} -E training'.format(self.iris_data)
-        my_manager = manager.MLSystemManager()
-        session = my_manager.create_session_from_argv(args)
-        assert session.arff.data[0][0] == 5.1
-        self.assertAlmostEqual(session.training_accuracy[0],1/3)
-
-    def test_commandline_from_subprocess(self):
-        #subprocess.popen()
-        pass
-
-if __name__=="__main__":
-    suite = TestLoader().loadTestsFromTestCase(TestManager)
-    TextTestRunner(verbosity=2).run(suite)
+    #, manager, arff
+# arff_path = r"./test/datasets/creditapproval.arff"
+# my_learner = baseline_learner.BaselineLearner
+# session = manager.ToolkitSession(arff_file=arff_path, learner=my_learner, eval_method="training",
+#                                  eval_parameter=None, print_confusion_matrix=False, normalize=False,
+#                                  random_seed=None)
+# ## Create a Matrix object from arff
+# iris = arff.Arff(arff=arff_path)

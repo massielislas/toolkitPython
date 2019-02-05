@@ -77,7 +77,7 @@ class MLSystemManager:
         modelmap = {
             "baseline": BaselineLearner,
             # "perceptron": PerceptronLearner,
-            # "neuralnet": NeuralNetLearner,
+            # "mlp": MultilayerPerceptronLearner,
             # "decisiontree": DecisionTreeLearner,
             # "knn": InstanceBasedLearner
         }
@@ -94,7 +94,7 @@ class MLSystemManager:
         parser.add_argument('-V', '--verbose', action='store_true', help='Print the confusion matrix and learner accuracy on individual class values')
         parser.add_argument('-N', '--normalize', action='store_true', help='Use normalized data')
         parser.add_argument('-R', '--seed', help="Random seed") # will give a string
-        parser.add_argument('-L', required=True, choices=['baseline', 'perceptron', 'neuralnet', 'decisiontree', 'knn'], help='Learning Algorithm')
+        parser.add_argument('-L', required=True, choices=['baseline', 'perceptron', 'mlp', 'decisiontree', 'knn'], help='Learning Algorithm')
         parser.add_argument('-A', '--arff', metavar='filename', required=True, help='ARFF file')
         parser.add_argument('-E', metavar=('METHOD', 'args'), required=True, nargs='+', help="Evaluation method (training | static <test_ARFF_file> | random <%%_for_training> | cross <num_folds>)")
         return parser
@@ -133,7 +133,7 @@ class ToolkitSession:
                 * Learner keyword arguments can be passed to the session
                 * A learner class can also already be instantiated when passed
     """
-    def __init__(self, arff_file, learner, eval_method=None, eval_parameter=None, print_confusion_matrix=False, normalize=False, random_seed=None, learner_args=None):
+    def __init__(self, arff_file, learner, eval_method=None, eval_parameter=None, print_confusion_matrix=False, normalize=False, random_seed=None, **kwargs):
         # parse the command-line arguments
 
         if random_seed:
@@ -142,7 +142,7 @@ class ToolkitSession:
         # update class variables
         if inspect.isclass(learner):
             # Instantiate learner if needed
-            self.learner = learner(**learner_args)
+            self.learner = learner(**kwargs)
             self.learner_name = learner.__name__
         else:
             self.learner = learner
