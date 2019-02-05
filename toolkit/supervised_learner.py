@@ -3,6 +3,7 @@ from __future__ import (absolute_import, division, print_function, unicode_liter
 from .arff import Arff
 import math
 import numpy as np
+import warnings
 # this is an abstract class
 
 
@@ -27,7 +28,7 @@ class SupervisedLearner:
         """
         raise NotImplementedError
 
-    def measure_accuracy(self, features, labels, confusion=None, method=None):
+    def measure_accuracy(self, features, labels, confusion=None, eval_method=None):
         """
         The model must be trained before you call this method. If the label is nominal,
         it returns the predictive accuracy. If the label is continuous, it returns
@@ -39,17 +40,16 @@ class SupervisedLearner:
         :rtype float
         """
 
-        if method==None:
+        # If no eval_method is passed
+        if eval_method==None:
             if isinstance(labels, Arff):
-                if labels.value_count()>0:
-                    method = "accuracy"
-                    label_count = labels.value_count()
+                if labels.is_nominal():
+                    eval_method = "accuracy"
                 else:
-                    method = "sse"
-
-            # elif isinstance(labels, np.ndarray):
-            #     unique_labels = np.unique(labels)
-            #     label_count = len(unique_labels)
+                    eval_method = "sse"
+            elif isinstance(labels, np.ndarray):
+                warnings.warn("Numpy array passed with no evaluation method, measuring accuracy")
+                labels=Arff(labels)
 
         if features.shape[0] != labels.shape[0]:
             raise Exception("Expected the features and labels to have the same number of rows")
@@ -58,7 +58,7 @@ class SupervisedLearner:
         if features.shape[0] == 0:
             raise Exception("Expected at least one row")
 
-        if method == "sse":
+        if eval_method == "sse":
             # label is continuous
             pred = [0.0]
             sse = 0.0
@@ -73,11 +73,11 @@ class SupervisedLearner:
                 sse += delta**2
             return math.sqrt(sse / features.shape[0])
 
-        elif method == "accuracy":
+        elif eval_method == "accuracy":
 
             # label is nominal, so measure predictive accuracy
             if confusion: # this assumes arff-class labels
-                confusion.set_size(label_count, label_count)
+                confusion.set_size(labels.unique_value_count(), labels.unique_value_count())
                 confusion.attr_names = [labels.attr_value(0, i) for i in labels]
 
             correct_count = 0
@@ -88,7 +88,7 @@ class SupervisedLearner:
 
                 if len(prediction) > 0:
                     del prediction[:]
-                if targ >= label_count:
+                if targ >= labels.unique_value_count():
                     raise Exception("The label is out of range")
 
                 # Assume predictions are integers 0-# of classes

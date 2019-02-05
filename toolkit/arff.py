@@ -4,7 +4,7 @@ import random
 import numpy as np
 from scipy import stats
 import re
-
+import warnings
 
 class Arff:
     """
@@ -15,7 +15,7 @@ class Arff:
     function ensures that all values are read as floats.)
     """
 
-    def __init__(self, arff=None, row_start=None, col_start=None, row_count=None, col_count=None, label_count=1):
+    def __init__(self, arff=None, row_idx=None, col_idx=None, label_count=1, name="Untitled"):
         """
 
         Args:
@@ -28,38 +28,51 @@ class Arff:
         """
 
         self.data = None
+        self.dataset_name = name
         self.attr_names = []
         self.attr_types = []
         self.str_to_enum = []  # list of dictionaries
         self.enum_to_str = []  # list of dictionaries
-        self.dataset_name = "Untitled"
+        self.label_columns = []
         self.MISSING = float("infinity")
+        self.label_count = label_count
 
-        if isinstance(arff, Arff): # Make a copy of arff file
-            self.init_from(arff, row_start, col_start, row_count, col_count)
+        if isinstance(arff, type(self)): # Make a copy of arff file
+            if self.dataset_name == "Untitled":
+                name = arff.dataset_name+"_subset"
+            self._copy_and_slice_arff(arff,row_idx, col_idx, label_count, name)
         elif isinstance(arff, str):  # load from path
             self.load_arff(arff)
         elif isinstance(arff, np.ndarray): # convert 2D numpy array to arff
             self.data = arff
         else:
+            # Empty arff data structure
             pass
-        self.label_count = label_count
 
-    def init_from(self, arff, row_start, col_start, row_count, col_count):
-        """Initialize the matrix with a portion of another matrix"""
-        if row_start is None:
-            row_start = 0
-        if col_start is None:
-            col_start = 0
-        if row_count is None:
-            row_count = arff.shape[0]
-        if col_count is None:
-            col_count = arff.shape[1]
+        # Initialize vacuous if data defined
+        if not self.data is None:
+            columns = self.data.shape[1]
+            self.attr_names = [x for x in range(columns)]         if not self.attr_names else self.attr_names
+            self.attr_types = ["Unknown" for x in range(columns)] if not self.attr_types else self.attr_types
+            self.str_to_enum = [{} for x in range(columns)]      if not self.str_to_enum else self.str_to_enum
+            self.enum_to_str = [{} for x in range(columns)]      if not self.enum_to_str else self.enum_to_str
+            self.label_columns = []
 
-        self.data = arff.data[row_start:row_start + row_count, col_start:col_start + col_count]
-        self.attr_names = arff.attr_names[col_start:col_start + col_count]
-        self.str_to_enum = arff.str_to_enum[col_start:col_start + col_count]
-        self.enum_to_str = arff.enum_to_str[col_start:col_start + col_count]
+    # def init_from(self, arff, row_start, col_start, row_count, col_count):
+    #     """Initialize the matrix with a portion of another matrix"""
+    #     if row_start is None:
+    #         row_start = 0
+    #     if col_start is None:
+    #         col_start = 0
+    #     if row_count is None:
+    #         row_count = arff.shape[0]
+    #     if col_count is None:
+    #         col_count = arff.shape[1]
+    #
+    #     self.data = arff.data[row_start:row_start + row_count, col_start:col_start + col_count]
+    #     self.attr_names = arff.attr_names[col_start:col_start + col_count]
+    #     self.str_to_enum = arff.str_to_enum[col_start:col_start + col_count]
+    #     self.enum_to_str = arff.enum_to_str[col_start:col_start + col_count]
 
     def set_size(self, rows, cols):
         """Resize this matrix (and set all attributes to be continuous)"""
@@ -162,15 +175,62 @@ class Arff:
         """Get the number of columns (or attributes) in the matrix"""
         return self.data.shape[1] - self.label_count
 
-    def create_subset_arff(self, col_idx, label_count=None):
-        new_arff = Arff()
-        new_arff.data = self.data[:, col_idx]
-        new_arff.attr_names = self.attr_names[col_idx]
-        new_arff.attr_types = self.attr_types[col_idx]
-        new_arff.str_to_enum = self.str_to_enum[col_idx]
-        new_arff.enum_to_str = self.enum_to_str[col_idx]
-        new_arff.label_count = label_count # this isn't right
+    def create_subset_arff(self, row_idx=None, col_idx=None, label_count=None):
+        """ This returns a new arff file with specified slices; both objects reference same underlying data
+
+        Args:
+            row_idx (slice() or list): A slice or list of row indices
+            col_idx (slice() or list):  A slice or list of col indices
+            label_count (int): The number of columns to be considered as "labels"
+
+        Returns:
+
+        """
+        new_arff = Arff(self, row_idx=row_idx, col_idx=col_idx, label_count=label_count) # create a copy
         return new_arff
+
+    def _copy_and_slice_arff(self, arff=None, row_idx=None, col_idx=None, label_count=None, dataset_name="Untitled"):
+        """ This copies an external arff to the current arff object, slicing as specified
+
+        Args:
+            row_idx (slice() or list): A slice or list of row indices
+            col_idx (slice() or list):  A slice or list of col indices
+            label_count (int): The number of columns to be considered as "labels"
+
+        Returns:
+
+        """
+        def slicer(_list, idx):
+            try:
+                if isinstance(col_idx, list):
+                    return [_list[i] for i in col_idx]
+                else:
+                    return _list[idx]
+            except:
+                warnings.warn("Could not slice {} element of Arff object, returning None".format(_list))
+                return None
+
+        if row_idx is None:
+            row_idx=slice(0,None)
+        if col_idx is None:
+            col_idx=slice(0,None)
+
+        # If reference has label count, but current one doesn't, infer it
+        column_count = arff.shape[1]
+        if label_count is None and arff.label_count:
+            label_list = [1 if i in range(column_count-arff.label_count, column_count) else 0 for i in range(column_count) ]
+            self.label_count = sum(slicer(label_list, col_idx))
+        else:
+            self.label_count = label_count
+
+
+        self.data = arff.data[row_idx, col_idx]
+        self.dataset_name = dataset_name
+
+        self.attr_names = slicer(arff.attr_names,col_idx)
+        self.attr_types = slicer(arff.attr_types,col_idx)
+        self.str_to_enum = slicer(arff.str_to_enum,col_idx)
+        self.enum_to_str = slicer(arff.enum_to_str,col_idx)
 
     def get_features(self, _type=None):
         """ Return features as 2D array
@@ -181,37 +241,12 @@ class Arff:
         Returns:
 
         """
-        return self.create_subset_arff(slice(0,-self.label_count), label_count=0)
-
-        # if _type is None:
-        #     return self.data[:, 0:-self.label_count]
-        # elif _type == "nominal":
-        #     nominal_idx = [x for i, x in enumerate(self.attr_types) if x == "nominal" and i < self.features_count]
-        #     return self.data[:, nominal_idx]
-        # elif _type == "continuous":
-        #     continuous_idx = [x for i, x in enumerate(self.attr_types) if
-        #                       x in ["continuous", "ordinal"] and i < self.features_count]
-        #     return self.data[:, continuous_idx]
-        # else:
-        #     raise Exception("Bad feature _type, must be 'nominal', 'continuous', or None.")
+        return self.create_subset_arff(col_idx=slice(0,-self.label_count), label_count=0)
 
     def get_labels(self, _type=None):
-        new_arff = self.create_subset_arff(slice(-self.label_count, None), label_count=self.label_count)
+        new_arff = self.create_subset_arff(col_idx=slice(-self.label_count, None), label_count=self.label_count)
         return new_arff
 
-        # if _type is None:
-        #     return self.data[:, -self.label_count:]
-        # elif _type == "nominal":
-        #     nominal_idx = [x for i, x in enumerate(self.attr_types) if x == "nominal" and i >= self.features_count]
-        #     return self.data[:, nominal_idx]
-        # elif _type == "continuous":
-        #     continuous_idx = [x for i, x in enumerate(self.attr_types) if
-        #                       x in ["continuous", "ordinal"] and i >= self.features_count]
-        #     return self.data[:, continuous_idx]
-        # else:
-        #     raise Exception("Bad feature _type, must be 'nominal', 'continuous', or None.")
-
-    @property
     def attr_name(self, col):
         """Get the name of the specified attribute"""
         return self.attr_names[col]
@@ -232,15 +267,17 @@ class Arff:
         """
         return self.enum_to_str[attr][val]
 
-    def value_count(self, col=0):
+    def unique_value_count(self, col=0):
         """
         Get the number of values associated with the specified attribute (or columnn)
         0=continuous, 2=binary, 3=trinary, etc.
         """
-        return len(self.enum_to_str[col]) if self.enum_to_str else 0
+        values = len(self.enum_to_str[col]) if self.enum_to_str else 0
+        return values
 
     def is_nominal(self, col=0):
-        return self.value_count(col)>0
+        nominal =self.unique_value_count(col) > 0
+        return nominal
 
     def shuffle(self, buddy=None):
         """Shuffle the row order. If a buddy Matrix is provided, it will be shuffled in the same order. By default, labels
@@ -283,7 +320,7 @@ class Arff:
     def normalize(self):
         """Normalize each column of continuous values"""
         for i in self.shape[1]:
-            if self.value_count(i) == 0:  # is continuous
+            if self.unique_value_count(i) == 0:  # is continuous
                 min_val = self.column_min(i)
                 max_val = self.column_max(i)
                 self.data[:, i] = (self.data[:, i] - min_val) / (max_val - min_val)
@@ -308,12 +345,16 @@ class Arff:
 
             values = []
             for j in range(len(r)):
-                if self.is_nominal():
-                    values.append(str(r[j]))
+                if not self.is_nominal(j):
+                    if r[j] != self.MISSING:
+                        values.append(str(r[j]))
+                    else:
+                        values.append("?")
                 else:
                     try:
                         values.append(self.enum_to_str[j][r[j]])
                     except(Exception) as e:
+                        print(out_string,values)
                         if r[j] == self.MISSING:
                             values.append("?")
                         else:
@@ -381,6 +422,8 @@ class Arff:
         Returns:
             array-like object
         """
+        #return self.create_subset_arff(index[0], index[1])
+
         return self.data[index]
 
     def __setitem__(self, key, value):

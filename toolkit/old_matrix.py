@@ -66,7 +66,7 @@ class Matrix:
 
         if __debug__:
             for col in range(self.cols):
-                if matrix.value_count(col_start + col) != self.value_count(col):
+                if matrix.unique_value_count(col_start + col) != self.unique_value_count(col):
                     raise Exception("incompatible relations")
 
         for i in range(matrix.rows - row_start):

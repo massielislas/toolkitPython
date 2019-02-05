@@ -14,30 +14,41 @@ class TestMatrix(TestCase):
 
         # NOTE: for discrete attributes, at least one value must be a float in order for numpy array
         # functions to work properly.
-        m = Arff()
+        data = np.array([[1.5, -6, 1.0],
+                         [2.3, -8, 2],
+                         [4.1, self.infinity, 2]])
+        m = Arff(data)
         m.attr_names = ['A', 'B', 'C']
         m.str_to_enum = [{}, {}, {'R': 0, 'G': 1, 'B': 2}]
         m.enum_to_str = [{}, {}, {0: 'R', 1: 'G', 2: 'B'}]
-        m.data = np.array([[1.5, -6, 1.0],
-                  [2.3, -8, 2],
-                  [4.1, self.infinity, 2]])
         self.m = m
 
-        m2 = Arff()
-        m2.attr_names = ['A', 'B', 'C', 'D', 'E']
-        m2.str_to_enum = [{}, {}, {}, {}, {'R': 0, 'G': 1, 'B': 2}]
-        m2.enum_to_str = [{}, {}, {}, {}, {0: 'R', 1: 'G', 2: 'B'}]
-        m2.data = np.array([[0.0, 1.0, 2.0, 3.0, 0.0],
+        data2 = np.array([[0.0, 1.0, 2.0, 3.0, 0.0],
                    [0.1, 1.1, 2.1, 3.1, 1.0],
                    [0.2, 1.2, 2.2, 3.2, 1.0],
                    [0.3, 1.3, 2.3, 3.3, 2.0],
                    [0.4, 1.4, 2.4, 3.4, 2.0]])
+
+        m2 = Arff(data2)
+        m2.attr_names = ['A', 'B', 'C', 'D', 'E']
+        m2.str_to_enum = [{}, {}, {}, {}, {'R': 0, 'G': 1, 'B': 2}]
+        m2.enum_to_str = [{}, {}, {}, {}, {0: 'R', 1: 'G', 2: 'B'}]
         self.m2 = m2
 
-    def test_init_from(self):
-        m2 = Arff(self.m, 1, 1, 2, 2)
-        self.assertListEqual(m2[0].tolist(), [-8, 2])
-        self.assertListEqual(m2[1].tolist(), [self.infinity, 2])
+    def test_create_subset_arff(self):
+        m2 = Arff(self.m2, [1,2], slice(1,3))
+        self.assertEqual(m2.shape, (2,2))
+
+        m2 = Arff(self.m2, slice(1,3), [1,2])
+        self.assertEqual(m2.shape, (2,2))
+
+        # Automatic label inference
+        self.m2.label_count=3
+        m2 = Arff(self.m2, slice(1,3), slice(1,None), label_count=None)
+        self.assertEqual(3, m2.label_count)
+        m2 = Arff(self.m2, slice(1,3), slice(1,-1), label_count=None)
+        self.assertEqual(2, m2.label_count)
+
 
     def test_set_size(self):
         m = Arff()
@@ -74,8 +85,9 @@ class TestMatrix(TestCase):
     #     self.assertEquals(self.m.get(2, 1), 2.5)
 
     def test_attr_name(self):
+        print(type(self.m))
         name = self.m.attr_name(2)
-        self.assertEquals(name, 'C')
+        self.assertEqual(name, 'C')
 
     def test_set_attr_name(self):
         self.m.set_attr_name(2, 'Color')
@@ -85,8 +97,8 @@ class TestMatrix(TestCase):
         self.assertEquals(self.m.attr_value(2, 0), 'R')
 
     def test_value_count(self):
-        self.assertEquals(self.m.value_count(1), 0)     # continuous
-        self.assertEquals(self.m.value_count(2), 3)     # R, G, B
+        self.assertEquals(self.m.unique_value_count(1), 0)     # continuous
+        self.assertEquals(self.m.unique_value_count(2), 3)     # R, G, B
 
     def test_shuffle(self):
         self.m.shuffle()
@@ -98,8 +110,8 @@ class TestMatrix(TestCase):
         pass
 
     def test_column_mean(self):
-        self.assertAlmostEquals(self.m.column_mean(0), 2.6333, 4)
-        self.assertAlmostEquals(self.m.column_mean(1), -7, 4)
+        self.assertAlmostEqual(self.m.column_mean(0), 2.6333, 4)
+        self.assertAlmostEqual(self.m.column_mean(1), -7, 4)
 
     def test_column_min(self):
         self.assertEquals(self.m.column_min(0), 1.5)

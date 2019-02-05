@@ -133,7 +133,7 @@ class ToolkitSession:
                 * Learner keyword arguments can be passed to the session
                 * A learner class can also already be instantiated when passed
     """
-    def __init__(self, arff_file, learner, eval_method=None, eval_parameter=None, print_confusion_matrix=False, normalize=False, random_seed=None, **kwargs):
+    def __init__(self, arff_file, learner, eval_method=None, eval_parameter=None, print_confusion_matrix=False, normalize=False, random_seed=None, learner_args=None):
         # parse the command-line arguments
 
         if random_seed:
@@ -142,7 +142,7 @@ class ToolkitSession:
         # update class variables
         if inspect.isclass(learner):
             # Instantiate learner if needed
-            self.learner = learner(**kwargs)
+            self.learner = learner(**learner_args)
             self.learner_name = learner.__name__
         else:
             self.learner = learner
@@ -230,8 +230,8 @@ class ToolkitSession:
             labels = self.arff.get_labels()
 
         confusion = None
-        if self.print_confusion_matrix and labels.value_count()>0:
-            confusion = Arff(np.zeros([labels.value_count(),labels.value_count()]))
+        if self.print_confusion_matrix and labels.unique_value_count()>0:
+            confusion = Arff(np.zeros([labels.unique_value_count(), labels.unique_value_count()]))
 
         start_time = time.time()
         self.learner.train(features, labels)

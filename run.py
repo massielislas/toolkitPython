@@ -23,10 +23,11 @@ class TestManager(TestCase):
         my_manager = manager.MLSystemManager()
         session = my_manager.create_session_from_argv(args)
         assert session.arff.data[0][0] == 5.1
-        assert abs(session.training_accuracy[0] - 1/3) < .001
+        self.assertAlmostEqual(session.training_accuracy[0],1/3)
 
     def test_commandline_from_subprocess(self):
         #subprocess.popen()
+        pass
 
 if __name__=="__main__":
     suite = TestLoader().loadTestsFromTestCase(TestManager)
