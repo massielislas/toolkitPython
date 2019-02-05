@@ -1,37 +1,33 @@
-import os
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+from unittest import TestCase,TestLoader,TextTestRunner
 from toolkit import baseline_learner, utils, manager, arff
+import numpy as np
+import os
+from toolkit import utils
+import subprocess
 
-""" This is an example script of how you might automate calls to the MLToolkit. 
-If you a running Python interactively (e.g. in terminal, IPython, Jupyter, etc.), this may useful as you can access predictions/weights after training has taken place.
-"""
+class TestManager(TestCase):
 
+    infinity = float("infinity")
 
-## From commandline (example):
-# python -m toolkit.manager -L baseline -A ./datasets/iris.arff -E random .7
+    def setUp(self):
 
-# Full voting data, _including_ missing values
-# voting_data = "./datasets/voting.arff"
-# voting_data_url = "http://axon.cs.byu.edu/data/uci_class/vote.arff"
+        ## Download .arff data
+        self.iris_data = "./datasets/iris.arff"
+        iris_url = "http://axon.cs.byu.edu/data/uci_class/iris.arff"
+        utils.save_arff(iris_url, self.iris_data)
 
-## Download .arff data
-iris_data = "./datasets/iris.arff"
-iris_url = "http://axon.cs.byu.edu/data/uci_class/iris.arff"
-utils.save_arff(iris_url, iris_data)
+    def test_commandline_from_python(self):
+        ## Create manager - from commandline argument
+        args = r'-L baseline -A {} -E training'.format(self.iris_data)
+        my_manager = manager.MLSystemManager()
+        session = my_manager.create_session_from_argv(args)
+        assert session.arff.data[0][0] == 5.1
+        assert abs(session.training_accuracy[0] - 1/3) < .001
 
-## Create manager - from commandline argument
-if False:
-    args = r'-L baseline -A {} -E training'.format(iris_data)
-    my_manager = manager.MLSystemManager()
-    session = my_manager.create_session_from_argv(args)
+    def test_commandline_from_subprocess(self):
+        #subprocess.popen()
 
-    print(session.learner.average_label) # properties in learner
-    print(session.data) # the Matrix class
-    print(session.data.data) # the numpy array of the matrix class
-
-## Create manager -- from another Python Script with custom learner
-my_manager = manager.MLSystemManager()
-my_learner = baseline_learner.BaselineLearner
-session = my_manager.create_new_session(arff_file=iris_data, learner=my_learner, eval_method="training", eval_parameter=None, print_confusion_matrix=False, normalize=False, random_seed=None)
-
-## Create a Matrix object from arff
-iris = arff.Arff(arff=iris_data)
+if __name__=="__main__":
+    suite = TestLoader().loadTestsFromTestCase(TestManager)
+    TextTestRunner(verbosity=2).run(suite)

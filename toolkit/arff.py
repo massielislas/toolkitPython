@@ -130,13 +130,20 @@ class Arff:
                     # print("{}".format(line))
                     vals = line.split(",")
                     row = np.zeros((len(vals)))
-                    for val in vals:
+                    for i,val in enumerate(vals):
                         val = val.strip()
                         if not val:
                             raise Exception("Missing data element in row with data '{}'".format(line))
                         else:
                             row[val_idx] = float(
                                 self.MISSING if val == "?" else self.str_to_enum[val_idx].get(val, val))
+
+                            # Capture missings in str_to_enum
+                            # if val == "?" and self.str_to_enum[i] and not "?" in self.str_to_enum:
+                            #
+                            #     num = max(self.str_to_enum[i].values())
+                            #     self.str_to_enum[i]["?"] = num
+                            #     self.enum_to_str[i][num] = "?"
 
                         val_idx += 1
 
@@ -230,10 +237,10 @@ class Arff:
         Get the number of values associated with the specified attribute (or columnn)
         0=continuous, 2=binary, 3=trinary, etc.
         """
-        return len(self.enum_to_str[col]) if len(self.enum_to_str) > 0 else 0
+        return len(self.enum_to_str[col]) if self.enum_to_str else 0
 
     def is_nominal(self, col=0):
-        return self.value_count(col)==0
+        return self.value_count(col)>0
 
     def shuffle(self, buddy=None):
         """Shuffle the row order. If a buddy Matrix is provided, it will be shuffled in the same order. By default, labels
@@ -290,10 +297,10 @@ class Arff:
         out_string += "@RELATION {}".format(self.dataset_name) + "\n"
         for i in range(len(self.attr_names)):
             out_string += "@ATTRIBUTE {}".format(self.attr_names[i])
-            if self.value_count(i) == 0:
-                out_string += (" CONTINUOUS") + "\n"
-            else:
+            if self.is_nominal(i):
                 out_string += (" {{{}}}".format(", ".join(self.enum_to_str[i].values()))) + "\n"
+            else:
+                out_string += (" CONTINUOUS") + "\n"
 
         out_string += ("@DATA") + "\n"
         for i in range(self.shape[0]):
@@ -301,10 +308,16 @@ class Arff:
 
             values = []
             for j in range(len(r)):
-                if self.value_count(j) == 0:
+                if self.is_nominal():
                     values.append(str(r[j]))
                 else:
-                    values.append(self.enum_to_str[j][r[j]])
+                    try:
+                        values.append(self.enum_to_str[j][r[j]])
+                    except(Exception) as e:
+                        if r[j] == self.MISSING:
+                            values.append("?")
+                        else:
+                            raise e
 
             # values = list(map(lambda j: str(r[j]) if self.value_count(j) == 0 else self.enum_to_str[j][r[j]],
             #                   range(len(r))))

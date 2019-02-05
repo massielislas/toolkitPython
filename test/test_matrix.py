@@ -36,22 +36,14 @@ class TestMatrix(TestCase):
 
     def test_init_from(self):
         m2 = Arff(self.m, 1, 1, 2, 2)
-        self.assertListEqual(m2.row(0).tolist(), [-8, 2])
-        self.assertListEqual(m2.row(1).tolist(), [self.infinity, 2])
-
-    def test_add(self):
-        self.m.add(self.m2, 0, 2, 3)
-        self.m.print()
-        self.assertListEqual(self.m.row(3).tolist(), self.m2.row(0)[2:].tolist())
-        self.m.add(self.m2, 3, 2, 3)
-        self.m.print()
-        self.assertListEqual(self.m.row(9).tolist(), self.m2.row(4)[2:].tolist())
+        self.assertListEqual(m2[0].tolist(), [-8, 2])
+        self.assertListEqual(m2[1].tolist(), [self.infinity, 2])
 
     def test_set_size(self):
         m = Arff()
         m.set_size(3, 4)
-        self.assertEqual(m.rows, 3)
-        self.assertEqual(m.cols, 4)
+        self.assertEqual(m.shape[0], 3)
+        self.assertEqual(m.shape[1], 4)
 
     def test_load_arff(self):
         t = Arff()
@@ -59,27 +51,27 @@ class TestMatrix(TestCase):
         url = "http://axon.cs.byu.edu/data/uci_class/iris.arff"
         utils.save_arff(url, data_path)
         t.load_arff("datasets/iris.arff")
-        self.assertListEqual(t.row(t.rows-1).tolist(), [5.9, 3.0, 5.1, 1.8, 2.0])
+        self.assertListEqual(t[t.shape[0]-1].tolist(), [5.9, 3.0, 5.1, 1.8, 2.0])
 
     def test_rows(self):
-        self.assertEquals(self.m.rows, 3)
+        self.assertEquals(self.m.shape[0], 3)
 
     def test_cols(self):
-        self.assertEquals(self.m.cols, 3)
+        self.assertEquals(self.m.shape[1], 3)
 
     def test_row(self):
-        self.assertListEqual(self.m.row(1).tolist(), [2.3, -8, 2])
+        self.assertListEqual(self.m[1].tolist(), [2.3, -8, 2])
 
     def test_col(self):
-        self.assertListEqual(self.m.col(1).tolist(), [-6, -8, self.infinity])
+        self.assertListEqual(self.m[:,1].tolist(), [-6, -8, self.infinity])
 
     def test_get(self):
-        self.assertEquals(self.m.get(0, 2), 1)
-        self.assertEquals(self.m.get(2, 0), 4.1)
+        self.assertEquals(self.m[0, 2], 1)
+        self.assertEquals(self.m[2, 0], 4.1)
 
-    def test_set(self):
-        self.m.set(2, 1, 2.5)
-        self.assertEquals(self.m.get(2, 1), 2.5)
+    # def test_set(self):
+    #     self.m.set(2, 1, 2.5)
+    #     self.assertEquals(self.m.get(2, 1), 2.5)
 
     def test_attr_name(self):
         name = self.m.attr_name(2)

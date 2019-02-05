@@ -26,9 +26,9 @@ class BaselineLearner(SupervisedLearner):
         self.average_label = []
         for i,label in enumerate(labels.T):
             if labels.is_nominal(i): # assumes 1D label
-                self.average_label += [labels.column_mean()]          # continuous
-            else:
                 self.average_label += [labels.most_common_value()]    # nominal
+            else:
+                self.average_label += [labels.column_mean()]  # continuous
 
     def predict(self, features):
         """
