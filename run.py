@@ -4,11 +4,27 @@ from toolkit import supervised_learner, manager, arff
 
 arff_path = r"./test/datasets/creditapproval.arff"
 
-# Session can take either instantiated or uninstantiated learner
-my_learner = baseline_learner.BaselineLearner
+## Read in arff file
 credit_approval = arff.Arff(arff=arff_path)
 
+## Example usage
+
+# Get 1st row of features as an ARFF
+features = credit_approval.get_features(slice(0,1))
+
+# Print as arff
+print(features)
+
+# Print Numpy array
+print(features.data)
+
+# Get all labels as numpy array using slicing
+lables = credit_approval.get_labels()[:]
+
 # Manual Training/Test
+# Session can take either instantiated or uninstantiated learner
+
+my_learner = baseline_learner.BaselineLearner
 session = manager.ToolkitSession(arff=credit_approval, learner=my_learner)
 train_features, train_labels, test_features, test_labels = session.training_test_split(.7)  # 70% training
 session.train(train_features, train_labels)
