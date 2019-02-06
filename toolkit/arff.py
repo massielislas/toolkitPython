@@ -230,7 +230,7 @@ class Arff:
         self.str_to_enum = slicer(arff.str_to_enum,col_idx)
         self.enum_to_str = slicer(arff.enum_to_str,col_idx)
 
-    def get_features(self, _type=None):
+    def get_features(self, row_idx=None):
         """ Return features as 2D array
 
         Args:
@@ -239,10 +239,14 @@ class Arff:
         Returns:
 
         """
-        return self.create_subset_arff(col_idx=slice(0,-self.label_count), label_count=0)
+        if row_idx is None:
+            row_idx = slice(0,None)
+        return self.create_subset_arff(row_idx=row_idx, col_idx=slice(0,-self.label_count), label_count=0)
 
-    def get_labels(self, _type=None):
-        new_arff = self.create_subset_arff(col_idx=slice(-self.label_count, None), label_count=self.label_count)
+    def get_labels(self, row_idx=None):
+        if row_idx is None:
+            row_idx = slice(0,None)
+        new_arff = self.create_subset_arff(row_idx=row_idx, col_idx=slice(-self.label_count, None), label_count=self.label_count)
         return new_arff
 
     def attr_name(self, col):
@@ -317,7 +321,7 @@ class Arff:
 
     def normalize(self):
         """Normalize each column of continuous values"""
-        for i in self.shape[1]:
+        for i in range(self.shape[1]):
             if self.unique_value_count(i) == 0:  # is continuous
                 min_val = self.column_min(i)
                 max_val = self.column_max(i)

@@ -35,6 +35,9 @@ class TestMatrix(TestCase):
         m2.enum_to_str = [{}, {}, {}, {}, {0: 'R', 1: 'G', 2: 'B'}]
         self.m2 = m2
 
+        self.credit_data_path = "./datasets/creditapproval.arff"
+        self.iris_path = "./datasets/iris.arff"
+
     def test_create_subset_arff(self):
         m2 = Arff(self.m2, [1,2], slice(1,3))
         self.assertEqual(m2.shape, (2,2))
@@ -50,6 +53,17 @@ class TestMatrix(TestCase):
         self.assertEqual(2, m2.label_count)
 
 
+    def test_arff_constructor(self):
+        """ Tests construction of Arff from path, arff, numpy array
+        """
+        ## Create a Matrix object from arff
+        credit = Arff(arff=self.credit_data_path)
+        credit3 = Arff(arff=credit)
+        credit2 = Arff(arff=credit.data)
+
+        assert np.array_equal(credit.data, credit2.data)
+        assert np.array_equal(credit2.data, credit3.data)
+
     def test_set_size(self):
         m = Arff()
         m.set_size(3, 4)
@@ -57,18 +71,20 @@ class TestMatrix(TestCase):
         self.assertEqual(m.shape[1], 4)
 
     def test_load_arff(self):
+        """ Tests downloading and loading arff file
+        """
+
         t = Arff()
-        data_path = "./datasets/iris.arff"
         url = "http://axon.cs.byu.edu/data/uci_class/iris.arff"
-        utils.save_arff(url, data_path)
-        t.load_arff("datasets/iris.arff")
+        utils.save_arff(url, self.iris_path)
+        t.load_arff(self.iris_path)
         self.assertListEqual(t[t.shape[0]-1].tolist(), [5.9, 3.0, 5.1, 1.8, 2.0])
 
     def test_rows(self):
-        self.assertEquals(self.m.shape[0], 3)
+        self.assertEqual(self.m.shape[0], 3)
 
     def test_cols(self):
-        self.assertEquals(self.m.shape[1], 3)
+        self.assertEqual(self.m.shape[1], 3)
 
     def test_row(self):
         self.assertListEqual(self.m[1].tolist(), [2.3, -8, 2])
@@ -77,12 +93,12 @@ class TestMatrix(TestCase):
         self.assertListEqual(self.m[:,1].tolist(), [-6, -8, self.infinity])
 
     def test_get(self):
-        self.assertEquals(self.m[0, 2], 1)
-        self.assertEquals(self.m[2, 0], 4.1)
+        self.assertEqual(self.m[0, 2], 1)
+        self.assertEqual(self.m[2, 0], 4.1)
 
     # def test_set(self):
     #     self.m.set(2, 1, 2.5)
-    #     self.assertEquals(self.m.get(2, 1), 2.5)
+    #     self.assertEqual(self.m.get(2, 1), 2.5)
 
     def test_attr_name(self):
         print(type(self.m))
@@ -91,14 +107,14 @@ class TestMatrix(TestCase):
 
     def test_set_attr_name(self):
         self.m.set_attr_name(2, 'Color')
-        self.assertEquals(self.m.attr_name(2), 'Color')
+        self.assertEqual(self.m.attr_name(2), 'Color')
 
     def test_attr_value(self):
-        self.assertEquals(self.m.attr_value(2, 0), 'R')
+        self.assertEqual(self.m.attr_value(2, 0), 'R')
 
     def test_value_count(self):
-        self.assertEquals(self.m.unique_value_count(1), 0)     # continuous
-        self.assertEquals(self.m.unique_value_count(2), 3)     # R, G, B
+        self.assertEqual(self.m.unique_value_count(1), 0)     # continuous
+        self.assertEqual(self.m.unique_value_count(2), 3)     # R, G, B
 
     def test_shuffle(self):
         self.m.shuffle()
@@ -114,16 +130,16 @@ class TestMatrix(TestCase):
         self.assertAlmostEqual(self.m.column_mean(1), -7, 4)
 
     def test_column_min(self):
-        self.assertEquals(self.m.column_min(0), 1.5)
-        self.assertEquals(self.m.column_min(1), -8)
+        self.assertEqual(self.m.column_min(0), 1.5)
+        self.assertEqual(self.m.column_min(1), -8)
 
     def test_column_max(self):
-        self.assertEquals(self.m.column_max(0), 4.1)
-        self.assertEquals(self.m.column_max(1), -6)
+        self.assertEqual(self.m.column_max(0), 4.1)
+        self.assertEqual(self.m.column_max(1), -6)
 
     def test_most_common_value(self):
-        self.assertEquals(self.m.most_common_value(0), 1.5)
-        self.assertEquals(self.m.most_common_value(2), 2)
+        self.assertEqual(self.m.most_common_value(0), 1.5)
+        self.assertEqual(self.m.most_common_value(2), 2)
 
 
     def test_append_rows(self):

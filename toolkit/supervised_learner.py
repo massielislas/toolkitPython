@@ -77,7 +77,7 @@ class SupervisedLearner:
             # label is nominal, so measure predictive accuracy
             if confusion: # this assumes arff-class labels
                 confusion.set_size(labels.unique_value_count(), labels.unique_value_count())
-                confusion.attr_names = [labels.attr_value(0, i) for i in labels]
+                confusion.attr_names = [labels.attr_value(0, i) for [i] in labels]
 
             correct_count = 0
             prediction = []
@@ -94,7 +94,7 @@ class SupervisedLearner:
                 pred = np.asarray(self.predict(feat)).astype(int)[0] ## ASSUME 1-D prediction
 
                 if confusion: # only working with one output?
-                    confusion.data[targ][pred] += 1
+                    confusion.data[targ,pred] += 1
                 #print(pred,targ)
                 if (pred == targ).all():
                     correct_count += 1

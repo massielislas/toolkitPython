@@ -138,6 +138,7 @@ class ToolkitSession:
 
         if random_seed:
             random.seed(random_seed)
+            np.random.seed(random_seed)
 
         # update class variables
         if inspect.isclass(learner):
@@ -149,7 +150,7 @@ class ToolkitSession:
             self.learner_name = type(learner).__name__
 
 
-        self.print_confusion_matrix = print_confusion_matrix
+        self.print_confusion_matrix_flag = print_confusion_matrix
         self.eval_method = eval_method
         self.eval_parameter = eval_parameter
         self.normalize = normalize
@@ -176,25 +177,32 @@ class ToolkitSession:
 
     def main(self):
         if self.eval_method == "training":
-            self.train(self.arff.get_features(), self.arff.get_labels() )
+            self.train(self.arff.get_features(), self.arff.get_labels(), self.print_confusion_matrix_flag )
         elif self.eval_method == "random":
             train_features, train_labels, test_features, test_labels = self.training_test_split(
                 train_percent=self.eval_parameter)
-            self.train(train_features, train_labels )
-            self.test(test_features, test_labels)
+            self.train(train_features, train_labels, self.print_confusion_matrix_flag)
+            self.test(test_features, test_labels, self.print_confusion_matrix_flag)
 
         elif self.eval_method == "static":
-            self.train(self.arff.get_features(), self.arff.get_labels() )
+            self.train(self.arff.get_features(), self.arff.get_labels(), self.print_confusion_matrix_flag)
             arff_file = self.eval_parameter
             test_data = Arff(arff_file)
             if self.normalize:
                 test_data.normalize()
-            self.test(features=test_data.get_features(), labels=test_data.get_labels())
+            self.test(features=test_data.get_features(), labels=test_data.get_labels(), print_confusion=self.print_confusion_matrix_flag)
 
         elif self.eval_method == "cross":
             self.cross_validate()
 
     def training_test_split(self, train_percent=.9):
+        """ Arff object with labels included
+        Args:
+            train_percent:
+
+        Returns:
+            Tuple: train_features, train_labels, test_features, test_labels
+        """
         self.arff.shuffle()
 
         print("Calculating accuracy on a random hold-out set...")
@@ -206,14 +214,14 @@ class ToolkitSession:
 
         train_size = int(train_percent * self.arff.shape[0])
 
-        train_features = self.arff.get_features()[0:train_size]
-        train_labels = self.arff.get_labels()[0:train_size]
+        train_features = self.arff.get_features(slice(0, train_size))
+        train_labels = self.arff.get_labels(slice(0, train_size))
 
-        test_features = self.arff.get_features()[train_size:]
-        test_labels = self.arff.get_labels()[0:train_size]
+        test_features = self.arff.get_features(slice(train_size, None))
+        test_labels = self.arff.get_labels(slice(train_size, None))
         return train_features, train_labels, test_features, test_labels
 
-    def train(self, features=None, labels=None):
+    def train(self, features=None, labels=None, print_confusion=None):
         """By default, this trains on entire arff file. Features and labels options are given to e.g.
             train on only a part of the data
         Args:
@@ -228,9 +236,11 @@ class ToolkitSession:
             features = self.arff.get_features()
         if labels is None:
             labels = self.arff.get_labels()
+        if print_confusion is None:
+            print_confusion = self.print_confusion_matrix_flag
 
         confusion = None
-        if self.print_confusion_matrix and labels.unique_value_count()>0:
+        if print_confusion and labels.unique_value_count()>0:
             confusion = Arff(np.zeros([labels.unique_value_count(), labels.unique_value_count()]))
 
         start_time = time.time()
@@ -241,25 +251,28 @@ class ToolkitSession:
         self.training_accuracy.append(accuracy)
         print("Training set accuracy: " + str(accuracy))
 
-        if self.print_confusion_matrix:
-            print("\nConfusion matrix: (Row=target value, Col=predicted value)")
-            confusion.print()
-            print("")
+        if print_confusion:
+            self.print_confusion_matrix(confusion)
 
-    def test(self, features, labels):
+    def test(self, features, labels, print_confusion=None):
             """ This eval_method 1) creates a 'random' training/test split according to some user-specified percentage,
                             2) trains the data
                             3) reports training AND test accuracy
             """
-            confusion = Arff()
-            test_accuracy = self.learner.measure_accuracy(features, features, confusion)
+            if print_confusion is None:
+                print_confusion = self.print_confusion_matrix_flag
+
+            confusion_matrix = Arff() if print_confusion else None
+            test_accuracy = self.learner.measure_accuracy(features, labels, confusion_matrix)
             self.test_accuracy.append(test_accuracy)
             print("Test set accuracy: {}".format(test_accuracy))
+            if print_confusion:
+                self.print_confusion_matrix(confusion_matrix)
 
-            if self.print_confusion_matrix:
-                print("\nConfusion matrix: (Row=target value, Col=predicted value)")
-                confusion.print()
-                print("")
+    def print_confusion_matrix(self, confusion_matrix):
+            print("\nConfusion matrix: (Row=target value, Col=predicted value)")
+            print(confusion_matrix.data)
+            print("")
 
     def generate_fold(self, folds):
         for i in range(folds):
