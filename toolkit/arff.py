@@ -3,6 +3,12 @@ import numpy as np
 from scipy import stats
 import re
 import warnings
+import sys
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel("INFO")
+logging.basicConfig()
+
 
 class Arff:
     """
@@ -15,7 +21,6 @@ class Arff:
 
     def __init__(self, arff=None, row_idx=None, col_idx=None, label_count=1, name="Untitled"):
         """
-
         Args:
             arff (str or Arff object): Path to arff file or another arff file
             row_start (int):
@@ -35,15 +40,19 @@ class Arff:
         self.MISSING = float("infinity")
         self.label_count = label_count
 
-        if isinstance(arff, type(self)): # Make a copy of arff file
+        if isinstance(arff, Arff): # Make a copy of arff file
+            logger.debug("Creating ARFF from ARFF object")
             if self.dataset_name == "Untitled":
                 name = arff.dataset_name+"_subset"
             self._copy_and_slice_arff(arff,row_idx, col_idx, label_count, name)
-        elif isinstance(arff, str):  # load from path
+        elif isinstance(arff, str) or (sys.version_info < (3, 0) and isinstance(arff, unicode)):  # load from path
+            logger.debug("Creating ARFF from file path")
             self.load_arff(arff)
         elif isinstance(arff, np.ndarray): # convert 2D numpy array to arff
+            logger.debug("Creating ARFF from ND_ARRAY")
             self.data = arff
         else:
+            logger.debug("Creating Empty Arff object")
             # Empty arff data structure
             pass
 
@@ -52,8 +61,8 @@ class Arff:
             columns = self.data.shape[1]
             self.attr_names = [x for x in range(columns)]         if not self.attr_names else self.attr_names
             self.attr_types = ["Unknown" for x in range(columns)] if not self.attr_types else self.attr_types
-            self.str_to_enum = [{} for x in range(columns)]      if not self.str_to_enum else self.str_to_enum
-            self.enum_to_str = [{} for x in range(columns)]      if not self.enum_to_str else self.enum_to_str
+            self.str_to_enum = [{} for x in range(columns)]       if not self.str_to_enum else self.str_to_enum
+            self.enum_to_str = [{} for x in range(columns)]       if not self.enum_to_str else self.enum_to_str
             self.label_columns = []
 
     # def init_from(self, arff, row_start, col_start, row_count, col_count):
@@ -89,79 +98,78 @@ class Arff:
 
         rows = []  # we read data into array of rows, then convert into array of columns
 
-        f = open(filename)
-        for line in f.readlines():
-            line = line.strip()  # why was this rstrip()?
-            if len(line) > 0 and line[0] != '%':
-                if not reading_data:
-                    if line.lower().startswith("@relation"):
-                        self.dataset_name = line[9:].strip()
-                    elif line.lower().startswith("@attribute"):
-                        attr_def = line[10:].strip()
-                        if attr_def[0] == "'":
-                            attr_def = attr_def[1:]
-                            attr_name = attr_def[:attr_def.index("'")]
-                            attr_def = attr_def[attr_def.index("'") + 1:].strip()
-                        else:
-                            search = re.search(r'(\w*)\s*(.*)', attr_def)
-                            attr_name = search.group(1)
-                            attr_def = search.group(2)
-                            # Remove white space from atribute values
-                            attr_def = "".join(attr_def.split())
+        with open(filename) as f:
+            for line in f.readlines():
+                line = line.strip()  # why was this rstrip()?
+                if len(line) > 0 and line[0] != '%':
+                    if not reading_data:
+                        if line.lower().startswith("@relation"):
+                            self.dataset_name = line[9:].strip()
+                        elif line.lower().startswith("@attribute"):
+                            attr_def = line[10:].strip()
+                            if attr_def[0] == "'":
+                                attr_def = attr_def[1:]
+                                attr_name = attr_def[:attr_def.index("'")]
+                                attr_def = attr_def[attr_def.index("'") + 1:].strip()
+                            else:
+                                search = re.search(r'(\w*)\s*(.*)', attr_def)
+                                attr_name = search.group(1)
+                                attr_def = search.group(2)
+                                # Remove white space from atribute values
+                                attr_def = "".join(attr_def.split())
 
-                        self.attr_names += [attr_name]
+                            self.attr_names += [attr_name]
 
-                        str_to_enum = {}
-                        enum_to_str = {}
-                        if attr_def.lower() in ["real", "continuous"]:
-                            self.attr_types.append("continuous")
-                        elif attr_def.lower() == "integer":
-                            self.attr_types.append("ordinal")
-                        else:
-                            # attribute is discrete
-                            assert attr_def[0] == '{' and attr_def[-1] == '}'
-                            attr_def = attr_def[1:-1]
-                            attr_vals = attr_def.split(",")
-                            val_idx = 0
-                            for val in attr_vals:
-                                val = val.strip()
-                                enum_to_str[val_idx] = val
-                                str_to_enum[val] = val_idx
-                                val_idx += 1
-                            self.attr_types.append("nominal")
-                        self.enum_to_str.append(enum_to_str)
-                        self.str_to_enum.append(str_to_enum)
+                            str_to_enum = {}
+                            enum_to_str = {}
+                            if attr_def.lower() in ["real", "continuous"]:
+                                self.attr_types.append("continuous")
+                            elif attr_def.lower() == "integer":
+                                self.attr_types.append("ordinal")
+                            else:
+                                # attribute is discrete
+                                assert attr_def[0] == '{' and attr_def[-1] == '}'
+                                attr_def = attr_def[1:-1]
+                                attr_vals = attr_def.split(",")
+                                val_idx = 0
+                                for val in attr_vals:
+                                    val = val.strip()
+                                    enum_to_str[val_idx] = val
+                                    str_to_enum[val] = val_idx
+                                    val_idx += 1
+                                self.attr_types.append("nominal")
+                            self.enum_to_str.append(enum_to_str)
+                            self.str_to_enum.append(str_to_enum)
 
-                    elif line.lower().startswith("@data"):
-                        reading_data = True
+                        elif line.lower().startswith("@data"):
+                            reading_data = True
 
-                else:
-                    # reading data
-                    val_idx = 0
-                    # print("{}".format(line))
-                    vals = line.split(",")
-                    row = np.zeros((len(vals)))
-                    for i,val in enumerate(vals):
-                        val = val.strip()
-                        if not val:
-                            raise Exception("Missing data element in row with data '{}'".format(line))
-                        else:
-                            row[val_idx] = float(
-                                self.MISSING if val == "?" else self.str_to_enum[val_idx].get(val, val))
+                    else:
+                        # reading data
+                        val_idx = 0
+                        # print("{}".format(line))
+                        vals = line.split(",")
+                        row = np.zeros((len(vals)))
+                        for i,val in enumerate(vals):
+                            val = val.strip()
+                            if not val:
+                                raise Exception("Missing data element in row with data '{}'".format(line))
+                            else:
+                                row[val_idx] = float(
+                                    self.MISSING if val == "?" else self.str_to_enum[val_idx].get(val, val))
 
-                            # Capture missings in str_to_enum
-                            # if val == "?" and self.str_to_enum[i] and not "?" in self.str_to_enum:
-                            #
-                            #     num = max(self.str_to_enum[i].values())
-                            #     self.str_to_enum[i]["?"] = num
-                            #     self.enum_to_str[i][num] = "?"
+                                # Capture missings in str_to_enum
+                                # if val == "?" and self.str_to_enum[i] and not "?" in self.str_to_enum:
+                                #
+                                #     num = max(self.str_to_enum[i].values())
+                                #     self.str_to_enum[i]["?"] = num
+                                #     self.enum_to_str[i][num] = "?"
 
-                        val_idx += 1
+                            val_idx += 1
 
-                    rows += [row]
-
-        f.close()
+                        rows += [row]
         self.data = np.array(rows)
+
 
     @property
     def instance_count(self):
@@ -184,7 +192,7 @@ class Arff:
         Returns:
 
         """
-        new_arff = Arff(self, row_idx=row_idx, col_idx=col_idx, label_count=label_count) # create a copy
+        new_arff = Arff(arff=self, row_idx=row_idx, col_idx=col_idx, label_count=label_count) # create a copy
         return new_arff
 
     def _copy_and_slice_arff(self, arff=None, row_idx=None, col_idx=None, label_count=None, dataset_name="Untitled"):

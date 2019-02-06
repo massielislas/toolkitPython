@@ -6,7 +6,6 @@ else:
     import urllib2 as urllib
  
 
-
 import os
 
 def get_arff(url="http://axon.cs.byu.edu/data/uci_class/iris.arff"):
@@ -22,3 +21,17 @@ def save_arff(url, data_path):
             os.makedirs(data_folder)
         with open(data_path, "w") as f:
             f.write(get_arff(url))
+
+def get_root():
+    #return os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    """ Get package root, kind of a hack
+
+    Returns:
+
+    """
+    old_path = ""
+    current_path = os.getcwd()
+    while "setup.py" not in os.listdir(current_path) and old_path != current_path:
+        old_path = current_path
+        current_path = os.path.dirname(current_path)
+    return current_path

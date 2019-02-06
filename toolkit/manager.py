@@ -25,7 +25,6 @@ import numpy as np
 
 """
 
-
 class MLSystemManager:
     """ This class manages Toolkit sessions. Each session is initiated with a specific dataset (arff file), evaluation type (training, test, etc.), and learner.
     """
@@ -57,9 +56,9 @@ class MLSystemManager:
         Returns:
 
         """
-        new_session = ToolkitSession(arff_file=arff_file, learner=learner, eval_method=eval_method,
-                                   eval_parameter=eval_parameter, print_confusion_matrix=print_confusion_matrix,
-                                   normalize=normalize, random_seed=random_seed)
+        new_session = ToolkitSession(arff=arff_file, learner=learner, eval_method=eval_method,
+                                     eval_parameter=eval_parameter, print_confusion_matrix=print_confusion_matrix,
+                                     normalize=normalize, random_seed=random_seed)
         self.sessions.append(new_session)
         return new_session
 
@@ -128,14 +127,24 @@ class MLSystemManager:
 
 class ToolkitSession:
     """ Toolkit session is given a learner with an associated arff file.
-        Notes:
-            * A learner class can be passed without instantiation. It will be created when the session is started.
-                * Learner keyword arguments can be passed to the session
-                * A learner class can also already be instantiated when passed
-    """
-    def __init__(self, arff_file, learner, eval_method=None, eval_parameter=None, print_confusion_matrix=False, normalize=False, random_seed=None, **kwargs):
+            Notes:
+                * A learner class can be passed without instantiation. It will be created when the session is started.
+                    * Learner keyword arguments can be passed to the session
+                    * A learner class can also already be instantiated when passed
+        """
+    def __init__(self, arff, learner, eval_method=None, eval_parameter=None, print_confusion_matrix=False, normalize=False, random_seed=None, **kwargs):
+        """
+        Args:
+            arff: Can be arff path, numpy array, or arff object
+            learner: Learner type or instantiated learner type
+            eval_method: training, static (separate test set), random (random test split), cross (cross-validate)
+            eval_parameter: "random" - % used for training; static - test set; cross - # of folds;
+            print_confusion_matrix (bool): True will print the confuction matrix (only makes sense for classification)
+            normalize: Normalize training/test data
+            random_seed: Set random seed for deterministic shuffling
+            **kwargs:
+        """
         # parse the command-line arguments
-
         if random_seed:
             random.seed(random_seed)
             np.random.seed(random_seed)
@@ -159,8 +168,10 @@ class ToolkitSession:
         self.test_accuracy = []
 
         # load the ARFF file
-        self.arff = Arff()
-        self.arff.load_arff(arff_file)
+        self.arff = Arff(arff)
+        if isinstance(arff, Arff):
+            arff = arff.dataset_name
+
         if self.normalize:
             print("Using normalized data")
             self.arff.normalize()
@@ -170,7 +181,7 @@ class ToolkitSession:
               "Number of instances: {}\n"
               "Number of attributes: {}\n"
               "Learning algorithm: {}\n"
-              "Evaluation method: {}\n".format(arff_file, self.arff.shape[0], self.arff.shape[1], self.learner_name, self.eval_method))
+              "Evaluation method: {}\n".format(arff, self.arff.shape[0], self.arff.shape[1], self.learner_name, self.eval_method))
 
         if not eval_method is None:
             self.main()
@@ -193,7 +204,9 @@ class ToolkitSession:
             self.test(features=test_data.get_features(), labels=test_data.get_labels(), print_confusion=self.print_confusion_matrix_flag)
 
         elif self.eval_method == "cross":
-            self.cross_validate()
+            self.cross_validate(self.eval_parameter)
+        else:
+            raise Exception("Unrecognized evaluation method '{}'".format(self.eval_method))
 
     def training_test_split(self, train_percent=.9):
         """ Arff object with labels included
@@ -219,6 +232,7 @@ class ToolkitSession:
 
         test_features = self.arff.get_features(slice(train_size, None))
         test_labels = self.arff.get_labels(slice(train_size, None))
+
         return train_features, train_labels, test_features, test_labels
 
     def train(self, features=None, labels=None, print_confusion=None):
@@ -279,17 +293,16 @@ class ToolkitSession:
             start_test = int(i * self.arff.shape[0] / folds)
             end_test = int((i + 1) * self.arff.shape[0] / folds)
 
-            train_features = self.arff.get_features()[np.r_[0:start_test, end_test:]]
-            train_labels = self.arff.get_labels()[np.r_[0:start_test, end_test:]]
+            train_features = self.arff.get_features(row_idx=np.r_[0:start_test, end_test:])
+            train_labels = self.arff.get_labels(row_idx=np.r_[0:start_test, end_test:])
 
-            test_features = self.arff.get_features()[start_test:end_test]
-            test_labels = self.arff.get_labels()[start_test:end_test]
+            test_features = self.arff.get_features(slice(start_test,end_test))
+            test_labels = self.arff.get_labels(slice(start_test,end_test))
             yield train_features, train_labels, test_features, test_labels
 
-    def cross_validate(self, reps, folds):
+    def cross_validate(self, folds, reps=1):
         print("Calculating accuracy using cross-validation...")
 
-        folds = int(self.eval_parameter)
         if folds <= 0:
             raise Exception("Number of folds must be greater than 0")
         print("Number of folds: {}".format(folds))
@@ -300,7 +313,7 @@ class ToolkitSession:
         for rep_counter in range(reps):
             self.arff.shuffle()
 
-            for fold_counter, train_features, train_labels, test_features, test_labels in enumerate(self.generate_fold(folds)):
+            for fold_counter, [train_features, train_labels, test_features, test_labels] in enumerate(self.generate_fold(folds)):
                 start_time = time.time()
 
                 # Train model
@@ -319,9 +332,6 @@ class ToolkitSession:
                 elapsed_time /= (reps * folds)
                 print("Average time to train (in seconds): {}".format(elapsed_time))
                 print("Mean accuracy={}".format(sum_accuracy / (reps * folds)))
-
-            else:
-                raise Exception("Unrecognized evaluation method '{}'".format(self.eval_method))
 
 class ToolkitArgParser(argparse.ArgumentParser):
     def __init__(self, description=None, doc_string=None):

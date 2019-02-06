@@ -72,6 +72,8 @@ coverage.xml
 venv/
 ENV/
 venv2/
+venv2.7/
+venv*
 
 # Rope
 .ropeproject

@@ -3,13 +3,17 @@ from __future__ import (absolute_import, division, print_function, unicode_liter
 from unittest import TestCase,TestLoader,TextTestRunner
 from toolkit.baseline_learner import BaselineLearner
 from toolkit.arff import Arff
+from toolkit import utils
+import os
 
 class TestBaselineLearner(TestCase):
+    def setUp(self):
+        path = os.path.join(utils.get_root(), "test/datasets/cm1_req.arff")
+        data = Arff(arff=path)
 
-    data = Arff(arff="../test/cm1_req.arff")
-    features = Arff(data, 0, 0, data.rows, data.cols - 1)
-    labels = Arff(data, 0, data.cols - 1, data.rows, 1)
-    learner = BaselineLearner()
+        self.features = data.get_features()
+        self.labels = data.get_labels()
+        self.learner = BaselineLearner()
 
     def test_train(self):
         self.learner.train(self.features, self.labels)
@@ -17,9 +21,9 @@ class TestBaselineLearner(TestCase):
 
     def test_predict(self):
         self.learner.train(self.features, self.labels)
-        label = self.learner.predict(self.features.row(0))
-
+        label = self.learner.predict(self.features[0])
         self.assertListEqual(self.learner.average_label, label)
 
-suite = TestLoader().loadTestsFromTestCase(TestBaselineLearner)
-TextTestRunner(verbosity=2).run(suite)
+if __name__=="__main__":
+    suite = TestLoader().loadTestsFromTestCase(TestBaselineLearner)
+    TextTestRunner(verbosity=2).run(suite)

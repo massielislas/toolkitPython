@@ -13,10 +13,19 @@ class BaselineLearner(SupervisedLearner):
     it's time to find a new learning model.
     """
 
-    def __init__(self):
-        # Your models should initialize weights and other model frameworks here
+    def __init__(self, data=None, example_hyperparameter=None):
+        """ Example learner initialization. Any additional variables passed to the Session will be passed on to the learner,
+            e.g. learning rate, etc.
+
+            Learners can initialize weights here
+        Args:
+            data:
+            hyperparameters:
+        """
         #self. weights = np.random.random((size))
         self.average_label = []
+        self.data_shape = data.shape if not data is None else None
+        self.example_hyperparameter = example_hyperparameter
 
     def train(self, features, labels):
         """
