@@ -40,6 +40,11 @@ class SupervisedLearner:
         """
 
         # If no eval_method is passed
+        if confusion:
+            if not isinstance(confusion,Arff):
+                warnings.warn("Confusion argument should be Arff obj, creating empty arff")
+                confusion = Arff()
+
         if eval_method==None:
             if isinstance(labels, Arff):
                 if labels.is_nominal():
@@ -64,9 +69,6 @@ class SupervisedLearner:
             for i in range(features.shape[0]):
                 feat = features[i]
                 targ = labels[i]
-                
-                if len(pred > 0):
-                    del pred[:]
                 pred = self.predict(feat)
                 delta = targ - pred
                 sse += delta**2
@@ -80,13 +82,10 @@ class SupervisedLearner:
                 confusion.attr_names = [labels.attr_value(0, i) for [i] in labels]
 
             correct_count = 0
-            prediction = []
             for i in range(features.shape[0]):
                 feat = features[i]
                 targ = int(labels[i,0]) ## THIS ASSUME 1-D OUTPUTS
 
-                if len(prediction) > 0:
-                    del prediction[:]
                 if targ >= labels.unique_value_count():
                     raise Exception("The label is out of range")
 
@@ -95,7 +94,6 @@ class SupervisedLearner:
 
                 if confusion: # only working with one output?
                     confusion.data[targ,pred] += 1
-                #print(pred,targ)
                 if (pred == targ).all():
                     correct_count += 1
 

@@ -52,6 +52,23 @@ class TestMatrix(TestCase):
         m2 = Arff(self.m2, slice(1,3), slice(1,-1), label_count=None)
         self.assertEqual(2, m2.label_count)
 
+    def test_copy_and_slice(self):
+        d = Arff(self.credit_data_path)
+        e = d.copy()
+
+        e._copy_and_slice_arff(d, 1, 5)
+        self.assertEqual(e.shape, (1,1))
+
+        e._copy_and_slice_arff(d, slice(1,4), slice(2,4))
+        self.assertEqual(e.shape, (3, 2))
+
+        # This will create a 1D array, returning coords (1,1), (2,5), (3,7)
+        e._copy_and_slice_arff(d, [1,2,3,7], [1,5,7,8])
+        self.assertEqual(e.shape, (4, ))
+
+        e._copy_and_slice_arff(d, [1,2,3,7], slice(0,5))
+        self.assertEqual(e.shape, (4, 5))
+
 
     def test_arff_constructor(self):
         """ Tests construction of Arff from path, arff, numpy array
@@ -76,6 +93,7 @@ class TestMatrix(TestCase):
 
         t = Arff()
         url = "http://axon.cs.byu.edu/data/uci_class/iris.arff"
+        os.remove(self.iris_path)
         utils.save_arff(url, self.iris_path)
         t.load_arff(self.iris_path)
         self.assertListEqual(t[t.shape[0]-1].tolist(), [5.9, 3.0, 5.1, 1.8, 2.0])

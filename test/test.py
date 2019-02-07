@@ -19,7 +19,7 @@ class TestManager(TestCase):
         session.train()
         self.assertAlmostEqual(session.training_accuracy[0],0.55507246)
 
-    def test_train_test(self):
+    def test_train_test_manual(self):
         my_learner = baseline_learner.BaselineLearner
         session = manager.ToolkitSession(arff=self.arff_path, learner=my_learner, eval_method=None,
                                          eval_parameter=None, print_confusion_matrix=True, normalize=False,
@@ -29,6 +29,26 @@ class TestManager(TestCase):
         session.train(train_features, train_labels)
         session.test(test_features, test_labels)
 
+    def test_sse(self):
+        my_learner = baseline_learner.BaselineLearner
+        session = manager.ToolkitSession(arff=self.arff_path, learner=my_learner)
+        train_features, train_labels, test_features, test_labels = session.training_test_split(.7) # 70% training
+        session.train(train_features, train_labels)
+        session.learner.measure_accuracy(test_features, test_labels, eval_method="sse")
+
+
+    def test_handle_numpy_array(self):
+        """ If arrays are passed to measure accuracy instead of arff objects
+        """
+        my_learner = baseline_learner.BaselineLearner
+        session = manager.ToolkitSession(arff=self.arff_path, learner=my_learner)
+        train_features, train_labels, test_features, test_labels = session.training_test_split(.7) # 70% training
+        session.train(train_features, train_labels)
+        session.learner.measure_accuracy(test_features.data, test_labels.data) # will test accuracy, assumes no nominal variables
+        session.learner.measure_accuracy(test_features.data, test_labels.data, eval_method="sse")
+
+        # Test naive confusion matrix
+        session.learner.measure_accuracy(test_features.data, test_labels.data, confusion=arff.Arff())
 
     def test_train_test(self):
         my_learner = baseline_learner.BaselineLearner
@@ -53,6 +73,9 @@ class TestManager(TestCase):
         session = manager.ToolkitSession(arff=self.arff_path, learner=my_learner, eval_method="random", eval_parameter=.7)
         session = manager.ToolkitSession(arff=self.arff_path, learner=my_learner, eval_method="static", eval_parameter=self.arff_path)
         session = manager.ToolkitSession(arff=self.arff_path, learner=my_learner, eval_method="cross", eval_parameter=10)
+
+
+
 
     def test_learner_kwargs(self):
         """

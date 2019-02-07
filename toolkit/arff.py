@@ -5,6 +5,8 @@ import re
 import warnings
 import sys
 import logging
+import copy
+
 logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
 logging.basicConfig()
@@ -209,21 +211,37 @@ class Arff:
 
         """
         def slicer(_list, idx):
-            """ If a list is specified as a slice, loop through
+            """ If a list is specified as a slice, loop through. Idx should be a list, int, or slice.
+                Returns:
+                    A list!!
             """
             try:
                 if isinstance(col_idx, list):
                     return [_list[i] for i in col_idx]
-                else:
+                elif isinstance(col_idx, int):
+                    return [_list[idx]]
+                elif isinstance(col_idx, slice):
                     return _list[idx]
+                else:
+                    raise Exception("Unexpected index type")
             except:
                 warnings.warn("Could not slice {} element of Arff object, returning None".format(_list))
                 return None
 
+        if self.is_iterable(row_idx) and self.is_iterable(col_idx):
+            warnings.warn("User is attempting to slice both axes using lists. This will result in a 1D array, " \
+                          "is not supported by the toolkit, and may not be what the user intended.")
+
+        # Fix row indices
         if row_idx is None:
             row_idx=slice(0,None)
+        elif isinstance(row_idx, int):
+            row_idx = slice(row_idx,row_idx+1) # make it a list, to preserve dimension
         if col_idx is None:
             col_idx=slice(0,None)
+        elif isinstance(col_idx, int):
+            col_idx = slice(col_idx,col_idx+1)
+
 
         # If reference has label count, but current one doesn't, infer it
         column_count = arff.shape[1]
@@ -232,7 +250,6 @@ class Arff:
             self.label_count = sum(slicer(label_list, col_idx))
         else:
             self.label_count = label_count
-
 
         self.data = arff.data[row_idx, col_idx]
         self.dataset_name = dataset_name
@@ -436,13 +453,20 @@ class Arff:
         Returns:
             array-like object
         """
-        # if not self.is_iterable(index):
-        #     index = [index, slice(0,None)]
-        # return self.create_subset_arff(index[0], index[1])
-        return self.data[index]
+        if False:
+            if not self.is_iterable(index):
+                index = [index, slice(0,None)]
+            print(index)
+            x = self.create_subset_arff(index[0], index[1])
+            return x
+        else:
+            return self.data[index]
 
     def __setitem__(self, key, value):
         self.data[key] = value
+
+    def copy(self):
+        return copy.deepcopy(self)
 
     def is_iterable(self, obj):
         try:
