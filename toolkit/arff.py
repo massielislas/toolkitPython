@@ -434,12 +434,20 @@ class Arff:
         Returns:
             array-like object
         """
-        print(index)
-        return self.create_subset_arff(index[0], index[1])
-        #return self.data[index]
+        # if not self.is_iterable(index):
+        #     index = [index, slice(0,None)]
+        # return self.create_subset_arff(index[0], index[1])
+        return self.data[index]
 
     def __setitem__(self, key, value):
         self.data[key] = value
+
+    def is_iterable(self, obj):
+        try:
+            iter(obj)
+        except TypeError as te:
+            return False
+        return True
 
     def __iter__(self):
         """
