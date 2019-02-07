@@ -35,8 +35,8 @@ class TestMatrix(TestCase):
         m2.enum_to_str = [{}, {}, {}, {}, {0: 'R', 1: 'G', 2: 'B'}]
         self.m2 = m2
 
-        self.credit_data_path = "./datasets/creditapproval.arff"
-        self.iris_path = "./datasets/iris.arff"
+        self.credit_data_path = os.path.join(utils.get_root(),"test/datasets/creditapproval.arff")
+        self.iris_path = os.path.join(utils.get_root(),"test/datasets/iris.arff")
 
     def test_create_subset_arff(self):
         m2 = Arff(self.m2, [1,2], slice(1,3))
@@ -61,8 +61,8 @@ class TestMatrix(TestCase):
         credit3 = Arff(arff=credit)
         credit2 = Arff(arff=credit.data)
 
-        assert np.array_equal(credit.data, credit2.data)
-        assert np.array_equal(credit2.data, credit3.data)
+        np.testing.assert_array_almost_equal(credit.data, credit2.data)
+        np.testing.assert_array_almost_equal(credit2.data, credit3.data)
 
     def test_set_size(self):
         m = Arff()

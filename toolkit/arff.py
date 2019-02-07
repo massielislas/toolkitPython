@@ -17,6 +17,8 @@ class Arff:
     For discrete attributes, at least one value must be a float in
     order for numpy array functions to work properly. (The load_arff
     function ensures that all values are read as floats.)
+
+    To do: Change backend to use Pandas dataframe
     """
 
     def __init__(self, arff=None, row_idx=None, col_idx=None, label_count=1, name="Untitled"):
@@ -37,7 +39,7 @@ class Arff:
         self.str_to_enum = []  # list of dictionaries
         self.enum_to_str = []  # list of dictionaries
         self.label_columns = []
-        self.MISSING = float("infinity")
+        self.MISSING = float("NaN")
         self.label_count = label_count
 
         if isinstance(arff, Arff): # Make a copy of arff file
@@ -459,3 +461,16 @@ class Arff:
     def shape(self):
         return self.data.shape
     # __iter__() and __getitem__()
+
+
+class DoubleDict(dict):
+    """ A barebones, two-way dictionary. Keys and values must be unique, one-to-one.
+    """
+    def __setitem__(self, key, value):
+        dict.__setitem__(self, key, value)
+        dict.__setitem__(self, value, key)
+
+    def __delitem__(self, key):
+        dict.__delitem__(self, self[key])
+        dict.__delitem__(self, key)
+

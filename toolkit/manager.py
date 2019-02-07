@@ -14,14 +14,15 @@ import numpy as np
 
 """ IDEAS:
 
+* Pandas
+* Vectorization
+* object variables of session
+* help file
+* return sliced arff file?
+
 * Still support END-TO-END commandline stuff
 * Also support: read in arff file, feed arff to learner, feed in learner to session
 * ARFF class: keep track of feature types!!
-* Can split ARFF files into features/labels; make sure this is done intelligently and appopriately
-
-** Learner can be created at train time
-** Learner can be created before, but then what does the session do?
-** Session functions can be put into supervised learner
 
 """
 
