@@ -466,6 +466,21 @@ class Arff:
         # return x
         return self.data[index]
 
+    # def slice(self, index):
+    #     """
+    #     Args:
+    #         index:
+    #
+    #     Returns:
+    #
+    #     """
+    #     # This will slice ARFF and return smaller arffs; it's considerably slower than numpy slicing
+    #     if not self.is_iterable(index):
+    #         index = [index, slice(0,None)]
+    #     x = self.create_subset_arff(index[0], index[1])
+    #     return x
+
+
     def __setitem__(self, key, value):
         self.data[key] = value
 

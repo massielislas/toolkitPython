@@ -4,34 +4,52 @@ In this short tutorial, we will guide you through setting up the Python Machine 
 
 ### Install
 
-### Your First Script
+### Modules
 
 First, import the required modules.
 ```
-from toolkit import baseline_learner, manager, arff, supervised_learner
+from toolkit import baseline_learner, manager, arff
 import numpy as np
 ```
 
-# Read in an arff file
+### Arff object class
 ```
 arff_path = r"./test/datasets/creditapproval.arff"
 credit_approval = arff.Arff(arff=arff_path)
 ```
 
-'credit_approval' is an Arff object. The Arff object is mostly a wrapper around a 2D numpy array. In the case above, this array can be accessed directly as credit_approval.data. The Arff object can also be sliced like traditional numpy arrays. E.g. the first row of data as a numpy array would be:
+From above, 'credit_approval' is an Arff object. The Arff object is mostly a wrapper around a 2D numpy array, which is stored as the 'data' class variable, e.g. `credit.data`. The Arff object also contains all the information needed to recreate the Arff file, including attribute/feature names, the number of label columns, whether each variable is nominal/continuous, and the list of possible values for nominal variables. Note that:
+
+* The Arff object automatically encodes nominal/string features as integers. 
+* The toolkit presently supports 1 label, which is assumed to be the rightmost column. There is some partial support for multiple label columns.
+* `print(credit_approval)` will print the object as Arff text. The string can be obtained by taking `str(credit_approval)`.
+
+The Arff object can also be sliced like traditional numpy arrays. E.g. the first row of data as a numpy array would be:
 
 ```
-lables = credit_approval[0,:]
+credit_approval[0,:]
 ```
 
-The Arff object also contains all the information needed to recreate the Arff file. Specifically, it stores attribute names, the number of label columns, whether each variable is nominal/continuous, and the list of possible values for nominal variables. Note that:
+Note that slicing this way returns a numpy 2D array, not an Arff file. To create a new Arff file that has been sliced, one can use
+```new_arff = Arff(credit_approxal, row_idx = slice(0,10), col_idx=slice(0,3))```
 
-# By default, it encodes nominal variables as integers. 
-# The toolkit presently supports 1 label, which is assumed to be the rightmost column. There is some partial support for multiple label columns, which are assumed to be the n rightmost columns.
+Alternatively, one can use a `list` or `int` for either the `col_idx` or `row_idx`, but they should not be used for both simultaneously:
 
-Because slicing the Arff file loses some of the metadata, users can slice ugh...
+```new_arff = Arff(credit_approxal, row_idx = [1,2], col_idx=slice(0,10))```
+
+This new_arff file will _usually_ create a reference to the numpy data underlying the original arff (this may depend on whether a `list` or `slice` was used). Arff.copy() should be used to make a deep copy of an Arff file.
+
+To get the features of an Arff object as an Arff object, one can simply call:
+```credit_approval.get_features()```
+
+Similarly:
+```credit_approval.get_labels()```
+
+One can also specify a 
 
 
+####Other examples:
+```
 # Get 1st row of features as an ARFF
 features = credit_approval.get_features(slice(0,1))
 
@@ -42,6 +60,9 @@ print(features)
 print(features.data)
 
 # Get all labels as numpy array using slicing
+
+
+```
 
 
 # Manual Training/Test
