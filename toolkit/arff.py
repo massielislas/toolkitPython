@@ -434,9 +434,9 @@ class Arff:
         Returns:
             array-like object
         """
-        #return self.create_subset_arff(index[0], index[1])
-
-        return self.data[index]
+        print(index)
+        return self.create_subset_arff(index[0], index[1])
+        #return self.data[index]
 
     def __setitem__(self, key, value):
         self.data[key] = value

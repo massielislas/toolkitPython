@@ -34,7 +34,6 @@ Notes/
 dev/
 *.log
 *.html
-*.txt
 profile*
 *profile
 *profile*
