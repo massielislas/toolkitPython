@@ -1,3 +1,7 @@
+[![codecov](https://codecov.io/gh/cs478ta/toolkitPython/branch/master/graph/badge.svg)](https://codecov.io/gh/cs478ta/toolkitPython)
+[![Build Status](https://travis-ci.org/cs478ta/toolkitPython.svg?branch=master)](https://travis-ci.org/cs478ta/toolkitPython)
+
+
 # toolkitPython
 Python port of [BYU CS 478 machine learning toolkit](http://axon.cs.byu.edu/~martinez/classes/478/stuff/Toolkit.html)
 
