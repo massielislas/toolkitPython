@@ -209,6 +209,8 @@ class Arff:
 
         """
         def slicer(_list, idx):
+            """ If a list is specified as a slice, loop through
+            """
             try:
                 if isinstance(col_idx, list):
                     return [_list[i] for i in col_idx]
