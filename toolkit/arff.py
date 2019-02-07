@@ -242,7 +242,6 @@ class Arff:
         elif isinstance(col_idx, int):
             col_idx = slice(col_idx,col_idx+1)
 
-
         # If reference has label count, but current one doesn't, infer it
         column_count = arff.shape[1]
         if label_count is None and arff.label_count:
@@ -250,8 +249,10 @@ class Arff:
             self.label_count = sum(slicer(label_list, col_idx))
         else:
             self.label_count = label_count
-
         self.data = arff.data[row_idx, col_idx]
+        if len(self.shape) < 2:
+            warnings.warn("Unexpected array dimension (should be 2, not {}".format(len(self.shape)))
+
         self.dataset_name = dataset_name
 
         self.attr_names = slicer(arff.attr_names,col_idx)
@@ -372,12 +373,12 @@ class Arff:
 
         out_string += ("@DATA") + "\n"
         for i in range(self.shape[0]):
-            r = self[i]
+            r = self.data[i]
 
             values = []
             for j in range(len(r)):
                 if not self.is_nominal(j):
-                    if r[j] != self.MISSING:
+                    if self.is_missing(r[j]):
                         values.append(str(r[j]))
                     else:
                         values.append("?")
@@ -386,7 +387,7 @@ class Arff:
                         values.append(self.enum_to_str[j][r[j]])
                     except(Exception) as e:
                         print(out_string,values)
-                        if r[j] == self.MISSING:
+                        if self.is_missing(r[j]):
                             values.append("?")
                         else:
                             raise e
@@ -420,15 +421,19 @@ class Arff:
         else:
             raise Exception("Unrecognized data type")
 
-    def append_columns(self, columns):
+    def append_columns(self, columns, attr_names=None):
         """ Add columns from 2D array-like object to "data" object (2D numpy array). Number of rows must match existing 2D numpy array.
         Args:
             columns (array-like): columns can be an Arff, numpy array, or list
+            attr_names (array): Names of columns to be appended
         """
         columns_to_add = self.nd_array(columns)
         if self.shape[0] != columns_to_add.shape[0]:
             raise Exception("Incompatible number of rows: {}, {}".format(self.shape[0], columns_to_add.shape[0]))
         self.data = np.concatenate([self.data, columns_to_add], axis=1)
+
+        if not attr_names is None:
+            self.attr_names += attr_names
         return self
 
     def append_rows(self, rows):
@@ -453,14 +458,13 @@ class Arff:
         Returns:
             array-like object
         """
-        if False:
-            if not self.is_iterable(index):
-                index = [index, slice(0,None)]
-            print(index)
-            x = self.create_subset_arff(index[0], index[1])
-            return x
-        else:
-            return self.data[index]
+
+        ## This will slice ARFF and return smaller arffs; it's considerably slower than numpy slicing
+        # if not self.is_iterable(index):
+        #     index = [index, slice(0,None)]
+        # x = self.create_subset_arff(index[0], index[1])
+        # return x
+        return self.data[index]
 
     def __setitem__(self, key, value):
         self.data[key] = value
@@ -496,6 +500,11 @@ class Arff:
         return self.data.shape
     # __iter__() and __getitem__()
 
+    def is_missing(self, value):
+        if self.MISSING == np.inf:
+            return value == np.inf
+        if np.isnan(self.MISSING):
+            return np.isnan(value)
 
 class DoubleDict(dict):
     """ A barebones, two-way dictionary. Keys and values must be unique, one-to-one.

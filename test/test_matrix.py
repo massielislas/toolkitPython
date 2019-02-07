@@ -96,7 +96,7 @@ class TestMatrix(TestCase):
         os.remove(self.iris_path)
         utils.save_arff(url, self.iris_path)
         t.load_arff(self.iris_path)
-        self.assertListEqual(t[t.shape[0]-1].tolist(), [5.9, 3.0, 5.1, 1.8, 2.0])
+        self.assertListEqual(t.data[t.shape[0]-1].tolist(), [5.9, 3.0, 5.1, 1.8, 2.0])
 
     def test_rows(self):
         self.assertEqual(self.m.shape[0], 3)
@@ -105,14 +105,14 @@ class TestMatrix(TestCase):
         self.assertEqual(self.m.shape[1], 3)
 
     def test_row(self):
-        self.assertListEqual(self.m[1].tolist(), [2.3, -8, 2])
+        self.assertListEqual(self.m.data[1].tolist(), [2.3, -8, 2])
 
     def test_col(self):
-        self.assertListEqual(self.m[:,1].tolist(), [-6, -8, self.infinity])
+        self.assertListEqual(self.m.data[:,1].tolist(), [-6, -8, self.infinity])
 
     def test_get(self):
-        self.assertEqual(self.m[0, 2], 1)
-        self.assertEqual(self.m[2, 0], 4.1)
+        self.assertEqual(self.m.data[0, 2], 1)
+        self.assertEqual(self.m.data[2, 0], 4.1)
 
     # def test_set(self):
     #     self.m.set(2, 1, 2.5)
@@ -201,8 +201,6 @@ class TestMatrix(TestCase):
         with self.assertRaises(Exception) as context:
             test_matrix.append_columns(self.m.data[:1,:])
         self.assertTrue('Incompatible number of rows' in str(context.exception))
-
-
 
 if __name__=="__main__":
     suite = TestLoader().loadTestsFromTestCase(TestMatrix)

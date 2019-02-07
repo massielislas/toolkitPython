@@ -34,7 +34,7 @@ class SupervisedLearner:
         the root mean squared error (RMSE). If confusion is non-NULL, and the
         output label is nominal, then confusion will hold stats for a confusion matrix.
         :type features: array-like
-        :type labels: array-like
+        :type labels: Arff
         :type confusion: Arff
         :rtype float
         """
@@ -53,7 +53,9 @@ class SupervisedLearner:
                     eval_method = "sse"
             elif isinstance(labels, np.ndarray):
                 warnings.warn("Numpy array passed with no evaluation method, measuring accuracy")
-                labels=Arff(labels)
+
+        if isinstance(labels, np.ndarray):
+            labels=Arff(labels)
 
         if features.shape[0] != labels.shape[0]:
             raise Exception("Expected the features and labels to have the same number of rows")
@@ -63,12 +65,15 @@ class SupervisedLearner:
             raise Exception("Expected at least one row")
 
         if eval_method == "sse":
+            # if isinstance(labels, Arff):
+            #     labels = labels.data
+
             # label is continuous
             pred = [0.0]
             sse = 0.0
             for i in range(features.shape[0]):
                 feat = features[i]
-                targ = labels[i]
+                targ = labels.data[i]
                 pred = self.predict(feat)
                 delta = targ - pred
                 sse += delta**2
@@ -84,7 +89,7 @@ class SupervisedLearner:
             correct_count = 0
             for i in range(features.shape[0]):
                 feat = features[i]
-                targ = int(labels[i,0]) ## THIS ASSUME 1-D OUTPUTS
+                targ = int(labels.data[i,0]) ## THIS ASSUME 1-D OUTPUTS
 
                 if targ >= labels.unique_value_count():
                     raise Exception("The label is out of range")
