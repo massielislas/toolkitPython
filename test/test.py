@@ -70,11 +70,9 @@ class TestManager(TestCase):
 
     def test_old_style_commands(self):
         my_learner = baseline_learner.BaselineLearner
-        session = manager.ToolkitSession(arff=self.arff_path, learner=my_learner, eval_method="random", eval_parameter=.7)
-        session = manager.ToolkitSession(arff=self.arff_path, learner=my_learner, eval_method="static", eval_parameter=self.arff_path)
-        session = manager.ToolkitSession(arff=self.arff_path, learner=my_learner, eval_method="cross", eval_parameter=10)
-
-
+        session1 = manager.ToolkitSession(arff=self.arff_path, learner=my_learner, eval_method="random", eval_parameter=.7)
+        session2 = manager.ToolkitSession(arff=self.arff_path, learner=my_learner, eval_method="static", eval_parameter=self.arff_path)
+        session3 = manager.ToolkitSession(arff=self.arff_path, learner=my_learner, eval_method="cross", eval_parameter=10)
 
 
     def test_learner_kwargs(self):

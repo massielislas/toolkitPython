@@ -25,9 +25,21 @@ class TestManager(TestCase):
         assert session.arff.data[0][0] == 5.1
         self.assertAlmostEqual(session.training_accuracy[0],1/3)
 
-    def test_commandline_from_subprocess(self):
-        #subprocess.popen()
+    def test_commandline_error(self):
+        ## Create manager - from commandline argument
+        # args = r'BAD COMMAND'.format(self.iris_data)
+        # my_manager = manager.MLSystemManager()
+        # with self.assertRaises(Exception) as context:
+        #     session = my_manager.create_session_from_argv(args)
+        #self.assertTrue('Error' in str(context.exception))
         pass
+
+
+    def test_commandline_from_subprocess(self):
+        args = r'-L baseline -A {} -E training'.format(self.iris_data)
+        child = subprocess.Popen([r"python", args], shell=False)
+        print(child.communicate()[0],child.returncode)
+        #subprocess.popen()
 
 if __name__=="__main__":
     suite = TestLoader().loadTestsFromTestCase(TestManager)
