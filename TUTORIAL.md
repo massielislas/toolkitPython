@@ -75,7 +75,7 @@ This may be helpful, since the Arff object has methods like:
 * `is_nominal(col)`: Returns true if the column is nominal
 * `shuffle(buddy=None)`: Shuffles the data; supplying a buddy Arff with the same number of rows will shuffle both objects in the same order.
 
-####Other examples:
+#### Other examples:
 ```
 # Get 1st row of features as an ARFF
 features = credit_approval.get_features(slice(0,1))
