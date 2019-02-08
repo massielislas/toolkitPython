@@ -18,12 +18,13 @@ print(features)
 # Print Numpy array
 print(features.data)
 
+# Print first row as Numpy array
+print(features[0, :])
+
 # Get all labels as numpy array using slicing
 lables = credit_approval.get_labels()[:]
 
 # Manual Training/Test
-# Session can take either instantiated or uninstantiated learner
-
 my_learner = baseline_learner.BaselineLearner
 session = manager.ToolkitSession(arff=credit_approval, learner=my_learner)
 train_features, train_labels, test_features, test_labels = session.training_test_split(.7)  # 70% training
@@ -43,4 +44,3 @@ session2 = manager.ToolkitSession(arff=credit_approval, learner=my_learner, eval
 session3 = manager.ToolkitSession(arff=credit_approval, learner=my_learner)
 session3.cross_validate(folds=10, reps=3)
 print(session3.test_accuracy)
-

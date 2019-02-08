@@ -22,10 +22,13 @@ class BaselineLearner(SupervisedLearner):
             data:
             hyperparameters:
         """
-        #self. weights = np.random.random((size))
-        self.average_label = []
-        self.data_shape = data.shape if not data is None else None
-        self.example_hyperparameter = example_hyperparameter
+
+        ## Example initializations
+
+        # self.average_label = []
+        # self.data_shape = data.shape if not data is None else None
+        # self.example_hyperparameter = example_hyperparameter
+        # self. weights = np.random.random(self.data_shape)
 
     def train(self, features, labels):
         """
@@ -34,7 +37,7 @@ class BaselineLearner(SupervisedLearner):
         :type labels: Arff
         """
         self.average_label = []
-        for i,label in enumerate(labels.T):
+        for i in range(labels.shape[1]): # for each label column
             if labels.is_nominal(i): # assumes 1D label
                 self.average_label += [labels.most_common_value(0)]    # nominal
             else:

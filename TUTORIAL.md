@@ -10,6 +10,18 @@ from toolkit import baseline_learner, manager, arff
 import numpy as np
 ```
 
+### Intro to Numpy Arrays
+Numpy is Python's premier numerical array module. While Numpy arrays handle n-dimensions, this toolkit is tailored for .arff file data, which is generally 2-dimensional. The `.shape` property of a Numpy array will return a tuple of the array dimensions (rows, columns).
+
+The array can also be "sliced" to obtain subsets:
+```
+# Get first two rows, from fourth column to the end
+my_array[0:2, 4:]
+
+# Get every other row, start at last column and go backward
+my_array[::2, -1::-1]
+```
+
 ### Arff object class
 Most of the datasets we used are stored in an .arff file format. The toolkit can create Python representations of these files:
 
@@ -180,6 +192,6 @@ python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E random [Percenta
 python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E cross [numOfFolds]
 
 Other options:
--R : random seed (should be set for reproducible results)
+-R [int]: random seed (should be set for reproducible results)
 -N : normalize continuous variables
 ```
