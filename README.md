@@ -1,7 +1,6 @@
 [![codecov](https://codecov.io/gh/cs478ta/toolkitPython/branch/master/graph/badge.svg)](https://codecov.io/gh/cs478ta/toolkitPython)
 [![Build Status](https://travis-ci.org/cs478ta/toolkitPython.svg?branch=master)](https://travis-ci.org/cs478ta/toolkitPython)
 
-
 # toolkitPython
 Python port of [BYU CS 478 machine learning toolkit](http://axon.cs.byu.edu/~martinez/classes/478/stuff/Toolkit.html)
 
@@ -24,34 +23,7 @@ Note:
 
 ## Usage
 
-In order to use this toolkit, most commands will be similar to those given
-on the class website for the Java and C++ toolkits. With the assumption that
-you already have NumPy installed (see their [website](http://www.numpy.org) for
-installation instructions), usage is straight-forward.
-
-As example, execute the following commands from the root directory of this
-repository.
-
-```bash
-mkdir datasets
-wget http://axon.cs.byu.edu/~martinez/classes/478/stuff/iris.arff -P datasets/
-python -m toolkit.manager -L baseline -A datasets/iris.arff -E training
-```
-
-Notice that you must specify the module "toolkit" as well as the manager file. 
-Aside from this difference, commands follow the same syntax as the other toolkits.
-
-For information on the expected syntax, run
-
-```bash
-python -m toolkit.manager --help
-```
-
-## Creating Learners
-
-See the baseline_learner.py and its `BaselineLearner` class for an example of
-the format of the learner. Learning models should inherit from the `SupervisedLearner` base class and override
-the `train()` and `predict()` functions.
+Please see [Tutorial.md](https://github.com/cs478ta/toolkitPython/blob/master/TUTORIAL.md) for a more usage and examples.
 
 ## Testing
 

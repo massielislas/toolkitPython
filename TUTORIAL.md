@@ -1,52 +1,64 @@
 ## Python Toolkit Tutorial
 
-In this short tutorial, we will guide you through setting up the Python Machine Learning toolkit for 478.
-
-### Install
+This short tutorial demonstrates some basic functionality of the Python toolkit for CS 478.
 
 ### Modules
 
-First, import the required modules.
+First, import the modules you will be using.
 ```
 from toolkit import baseline_learner, manager, arff
 import numpy as np
 ```
 
 ### Arff object class
+Most of the datasets we used are stored in an .arff file format. The toolkit can create Python representations of these files:
+
 ```
 arff_path = r"./test/datasets/creditapproval.arff"
 credit_approval = arff.Arff(arff=arff_path)
 ```
 
-From above, 'credit_approval' is an Arff object. The Arff object is mostly a wrapper around a 2D numpy array, which is stored as the 'data' class variable, e.g. `credit.data`. The Arff object also contains all the information needed to recreate the Arff file, including attribute/feature names, the number of label columns, whether each variable is nominal/continuous, and the list of possible values for nominal variables. Note that:
+Here, `credit_approval` is an Arff object. The Arff object is mostly a wrapper around a 2D numpy array, which is stored as the 'data' Arff class variable, i.e. `credit.data`. The Arff object also contains all the information needed to recreate the Arff file, including feature names, the number of columns that are considered "outputs" (labels), whether each feature is nominal or continuous, and the list of possible values for nominal features. Note that:
 
 * The Arff object automatically encodes nominal/string features as integers. 
-* The toolkit presently supports 1 label, which is assumed to be the rightmost column. There is some partial support for multiple label columns.
-* `print(credit_approval)` will print the object as Arff text. The string can be obtained by taking `str(credit_approval)`.
+* The toolkit presently supports 1 label, which is assumed to be the rightmost column.
+* `print(credit_approval)` will print the object as Arff text. Alternatively, a .arff style string can be obtained by taking `str(credit_approval)`.
 
-The Arff object can also be sliced like traditional numpy arrays. E.g. the first row of data as a numpy array would be:
+The Arff object can also be sliced like traditional numpy arrays. E.g., the first row of data as a numpy array would be:
 
 ```
 credit_approval[0,:]
 ```
 
-Note that slicing this way returns a numpy 2D array, not an Arff file. To create a new Arff file that has been sliced, one can use
-```new_arff = Arff(credit_approxal, row_idx = slice(0,10), col_idx=slice(0,3))```
+Note that slicing this way returns a numpy 2D array, not an Arff object. To create a new Arff object that has been sliced, one can use:
+
+```
+# Get first 10 rows, first 3 columns
+new_arff = Arff(credit_approxal, row_idx = slice(0,10), col_idx=slice(0,3))
+```
 
 Alternatively, one can use a `list` or `int` for either the `col_idx` or `row_idx`, but they should not be used for both simultaneously:
 
-```new_arff = Arff(credit_approxal, row_idx = [1,2], col_idx=slice(0,10))```
+```
+# Get rows 0 and 2, columns 0 through 9
+new_arff = Arff(credit_approxal, row_idx = [0,2], col_idx=slice(0,10))
 
-This new_arff file will _usually_ create a reference to the numpy data underlying the original arff (this may depend on whether a `list` or `slice` was used). Arff.copy() should be used to make a deep copy of an Arff file.
+# Get row 1, all columns
+new_arff = Arff(credit_approxal, row_idx = 1)
+```
 
-To get the features of an Arff object as an Arff object, one can simply call:
+This new_Arff object will should copy the numpy array data underlying the original Arff. Arff.copy() can also be used to make a safe, deep copy of an Arff object.
+
+To get the features of an Arff object as another Arff object, one can simply call:
 ```credit_approval.get_features()```
 
-Similarly:
+Similarly, for labels:
 ```credit_approval.get_labels()```
 
-One can also specify a 
-
+This may be helpful, since the Arff object has methods like:
+* `unique_value_count(col)`: Returns the number of unique values for nominal variables
+* `is_nominal(col)`: Returns true if the column is nominal
+* `shuffle(buddy=None)`: Shuffles the data; supplying a buddy Arff with the same number of rows will shuffle both objects in the same order.
 
 ####Other examples:
 ```
@@ -59,132 +71,112 @@ print(features)
 # Print Numpy array
 print(features.data)
 
-# Get all labels as numpy array using slicing
-
+# Get shape of data: (rows, columns)
+print(features.shape)
 
 ```
 
+### Creating Learners
 
-# Manual Training/Test
-# Session can take either instantiated or uninstantiated learner
+See the baseline_learner.py and its `BaselineLearner` class for an example of
+the format of the learner. Learning models should inherit from the `SupervisedLearner` base class and override
+the `train()` and `predict()` functions. It should probably also have a constructor, i.e. `def __init__(self, argument1, argument2):` that can be used to initialize learner weights, hyperparameters, etc.
 
+### Training
+Session objects can be created to facilitate training. Session objects, at a minimum, should be passed 1) an Arff file path or Arff object and 2) uninstantiated learner class.
+
+```
+# Create arff object
+credit_approval = arff.Arff(arff=arff_path)
+
+# Declare learner
 my_learner = baseline_learner.BaselineLearner
+
+# Create session
 session = manager.ToolkitSession(arff=credit_approval, learner=my_learner)
+
+# Split training/test data
 train_features, train_labels, test_features, test_labels = session.training_test_split(.7)  # 70% training
+
+# session.train mostly calls learner.train() and records accuracy
 session.train(train_features, train_labels)
 session.test(test_features, test_labels)
-print(session.training_accuracy)
 
+# Session keeps track of accuracy by epoch
+print(session.training_accuracy)
+print(session.test_accuracy)
+```
+
+Because the learner is not instantiated, you can pass named learner arguments to the session, which will be passed on to the learner. For instance, you might want to initialize a learner object with a certain learning rate, or pass the Arff object when it is instantiated to initialize an appropriately sized weight matrix.
+
+```
 # Pass on hyperparameters to learner
 session = manager.ToolkitSession(arff=credit_approval, learner=my_learner, data=credit_approval, example_hyperparameter=.5)
 print(session.learner.data_shape, (690, 16))
 print(session.learner.example_hyperparameter, .5)
+```
 
-# Automatic
-session2 = manager.ToolkitSession(arff=credit_approval, learner=my_learner, eval_method="random", eval_parameter=.7)
+The toolkit also natively supports cross-validation:
 
-# Cross validate
+```
+# Cross-validate, 10 folds, perform 3x
 session3 = manager.ToolkitSession(arff=credit_approval, learner=my_learner)
 session3.cross_validate(folds=10, reps=3)
 print(session3.test_accuracy)
+```
 
+### End-to-end training
+The toolkit also supports end-to-end training, for automatic training, training/testing, and cross-validated training, similar to the C++ and Java versions of the toolkit. The `eval_method` and `eval_parameter` are the same as they are in the commandline variant and the C++ and Java toolkits.
 
+```
+# Train with random 70% split, test with other 30% of data
+session2 = manager.ToolkitSession(arff=credit_approval, learner=my_learner, eval_method="random", eval_parameter=.7)
+```
 
+### Command-line:
+Training and testing can be performed via command-line (as in the Java and C++ toolkits).
+Running the toolkit from command-line will require modifying the toolkit to 1) import your learner and 2) correctly parse the `learningAlgorithm` argument to instantiate your learner class.
 
-### Algorithm
+As example, execute the following commands from the root directory of this
+repository.
 
-<img src="https://raw.githubusercontent.com/NVlabs/MUNIT/master/docs/munit_assumption.jpg" width="800" title="Assumption"> 
+```bash
+mkdir datasets
+wget http://axon.cs.byu.edu/~martinez/classes/478/stuff/iris.arff -P datasets/
+python -m toolkit.manager -L baseline -A datasets/iris.arff -E training
+```
 
-MUNIT is based on the partially-shared latent space assumption as illustrated in (a) of the above image. Basically, it assumes that latent representation of an image can be decomposed into two parts where one represents content of the image that is shared across domains, while the other represents style of the image that is not-shared across domains. To realize this assumption, MUNIT uses 3 networks for each domain, which are 
+Notice that you must specify the module "toolkit" as well as the manager file. 
+Aside from this difference, commands follow the same syntax as the other toolkits.
 
-1. content encoder (for extracting a domain-shared latent code, content code)
-2. style encoder (for extracting a domain-specific latent code, style code)
-3. decoder (for generating an image using a content code and a style code)
+For information on the expected syntax, you may run:
 
-In the test time as illustrated in (b) of the above image, when we want to translate an input image in the 1st domain (source domain) to a corresponding image in the 2nd domain (target domain). MUNIT first uses the content encoder in the source domain to extract a content codes, combines it with a randomly sampled style code from the target domain, and feed them to the decoder in the target domain to generate the translation. By sampling different style codes, MUNIT generates different translations. Since the style space is a continuous space, MUNIT essentially maps an input image in the source domain to a distribution of images in the target domain.  
+```bash
+python -m toolkit.manager --help
+```
 
-### Requirments
+#### Command-line Usage: 
+```
+python -m toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E [EvaluationMethod] {[ExtraParamters]} -N {-R [seed]}
 
+Example:
+python -m toolkit.manager -L baseline -A ./test/datasets/iris.arff -E training
 
-- Hardware: PC with NVIDIA Titan GPU. For large resolution images, you need NVIDIA Tesla P100 or V100 GPUs, which have 16GB+ GPU memory. 
-- Software: *Ubuntu 16.04*, *CUDA 9.1*, *Anaconda3*, *pytorch 0.4.1*
-- System package
-  - `sudo apt-get install -y axel imagemagick` (Only used for demo)  
-- Python package
-  - `conda install pytorch=0.4.1 torchvision cuda91 -y -c pytorch`
-  - `conda install -y -c anaconda pip`
-  - `conda install -y -c anaconda pyyaml`
-  - `pip install tensorboard tensorboardX`
+Possible evaluation methods are:
 
-### Docker Image
+# Only train
+python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E training
 
-We also provide a [Dockerfile](Dockerfile) for building an environment for running the MUNIT code.
+# Train and test, with test data in a separate arff file
+python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E static [TestARFF_File]
 
-  1. Install docker-ce. Follow the instruction in the [Docker page](https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-docker-ce-1)
-  2. Install nvidia-docker. Follow the instruction in the [NVIDIA-DOCKER README page](https://github.com/NVIDIA/nvidia-docker).
-  3. Build the docker image `docker build -t your-docker-image:v1.0 .`
-  4. Run an interactive session `docker run -v YOUR_PATH:YOUR_PATH --runtime=nvidia -i -t your-docker-image:v1.0 /bin/bash`
-  5. `cd YOUR_PATH`
-  6. Follow the rest of the tutorial.
+# Randomly split data into train/test, then train, then test
+python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E random [PercentageForTraining]
 
-### Training
+# Cross-validate
+python toolkit.manager -L [learningAlgorithm] -A [ARFF_File] -E cross [numOfFolds]
 
-We provide several training scripts as usage examples. They are located under `scripts` folder. 
-- `bash scripts/demo_train_edges2handbags.sh` to train a model for multimodal sketches of handbags to images of handbags translation.
-- `bash scripts/demo_train_edges2shoes.sh` to train a model for multimodal sketches of shoes to images of shoes translation.
-- `bash scripts/demo_train_summer2winter_yosemite256.sh` to train a model for multimodal Yosemite summer 256x256 images to Yosemite winter 256x256 image translation.
-
-If you break down the command lines in the scripts, you will find that to train a multimodal unsupervised image-to-image translation model you have to do
-
-1. Download the dataset you want to use. 
-
-3. Setup the yaml file. Check out `configs/demo_edges2handbags_folder.yaml` for folder-based dataset organization. Change the `data_root` field to the path of your downloaded dataset. For list-based dataset organization, check out `configs/demo_edges2handbags_list.yaml`
-
-3. Start training
-    ```
-    python train.py --config configs/edges2handbags_folder.yaml
-    ```
-    
-4. Intermediate image outputs and model binary files are stored in `outputs/edges2handbags_folder`
-
-### Testing 
-
-First, download our pretrained models for the edges2shoes task and put them in `models` folder.
-
-### Pretrained models 
-
-|  Dataset    | Model Link     |
-|-------------|----------------|
-| edges2shoes |   [model](https://drive.google.com/drive/folders/10IEa7gibOWmQQuJUIUOkh-CV4cm6k8__?usp=sharing) | 
-| edges2handbags |   coming soon |
-| summer2winter_yosemite256 |   coming soon |
-
-
-#### Multimodal Translation
-
-Run the following command to translate edges to shoes
-
-    python test.py --config configs/edges2shoes_folder.yaml --input inputs/edges2shoes_edge.jpg --output_folder results/edges2shoes --checkpoint models/edges2shoes.pt --a2b 1
-    
-The results are stored in `results/edges2shoes` folder. By default, it produces 10 random translation outputs.
-
-| Input | Translation 1 | Translation 2 | Translation 3 | Translation 4 | Translation 5 |
-|-------|---------------|---------------|---------------|---------------|---------------|
-| <img src="https://raw.githubusercontent.com/NVlabs/MUNIT/master/inputs/edges2shoes_edge.jpg" width="128" title="Input"> | <img src="https://raw.githubusercontent.com/NVlabs/MUNIT/master/results/edges2shoes/output001.jpg" width="128" title="output001"> | <img src="https://raw.githubusercontent.com/NVlabs/MUNIT/master/results/edges2shoes/output002.jpg" width="128" title="output002"> | <img src="https://raw.githubusercontent.com/NVlabs/MUNIT/master/results/edges2shoes/output003.jpg" width="128" title="output003"> | <img src="https://raw.githubusercontent.com/NVlabs/MUNIT/master/results/edges2shoes/output004.jpg" width="128" title="output004"> | <img src="https://raw.githubusercontent.com/NVlabs/MUNIT/master/results/edges2shoes/output005.jpg" width="128" title="output005"> |
-
-
-#### Example-guided Translation
-
-The above command outputs diverse shoes from an edge input. In addition, it is possible to control the style of output using an example shoe image.
-    
-    python test.py --config configs/edges2shoes_folder.yaml --input inputs/edges2shoes_edge.jpg --output_folder results --checkpoint models/edges2shoes.pt --a2b 1 --style inputs/edges2shoes_shoe.jpg
- 
-| Input Photo | Style Photo | Output Photo |
-|-------|---------------|---------------|
-| <img src="https://raw.githubusercontent.com/NVlabs/MUNIT/master/inputs/edges2shoes_edge.jpg" width="128" title="Input"> | <img src="https://raw.githubusercontent.com/NVlabs/MUNIT/master/inputs/edges2shoes_shoe.jpg" width="128" title="Style"> | <img src="https://raw.githubusercontent.com/NVlabs/MUNIT/master/results/output000.jpg" width="128" title="Output"> |   
- 
-### Yosemite Summer2Winter HD dataset
-
-Coming soon.
-
-
+Other options:
+-R : random seed (should be set for reproducible results)
+-N : normalize continuous variables
+```

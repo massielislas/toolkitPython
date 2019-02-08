@@ -8,7 +8,7 @@ from toolkit import utils
 
 class TestMatrix(TestCase):
 
-    infinity = float("infinity")
+    infinity = float("inf") # using NaN messes up equality testing
 
     def setUp(self):
 
@@ -87,14 +87,18 @@ class TestMatrix(TestCase):
         self.assertEqual(m.shape[0], 3)
         self.assertEqual(m.shape[1], 4)
 
+    def test_download(self):
+        # Test download
+        url = "http://axon.cs.byu.edu/data/uci_class/iris.arff"
+        if os.path.exists(self.iris_path):
+            os.remove(self.iris_path)
+        utils.save_arff(url, self.iris_path)
+
     def test_load_arff(self):
         """ Tests downloading and loading arff file
         """
 
         t = Arff()
-        url = "http://axon.cs.byu.edu/data/uci_class/iris.arff"
-        os.remove(self.iris_path)
-        utils.save_arff(url, self.iris_path)
         t.load_arff(self.iris_path)
         self.assertListEqual(t.data[t.shape[0]-1].tolist(), [5.9, 3.0, 5.1, 1.8, 2.0])
 
@@ -158,7 +162,6 @@ class TestMatrix(TestCase):
     def test_most_common_value(self):
         self.assertEqual(self.m.most_common_value(0), 1.5)
         self.assertEqual(self.m.most_common_value(2), 2)
-
 
     def test_append_rows(self):
         test_matrix = Arff(self.m)

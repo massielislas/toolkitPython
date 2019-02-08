@@ -52,9 +52,11 @@ class Arff:
         elif isinstance(arff, str) or (sys.version_info < (3, 0) and isinstance(arff, unicode)):  # load from path
             logger.debug("Creating ARFF from file path")
             self.load_arff(arff)
+            self._copy_and_slice_arff(self, row_idx, col_idx, label_count, name)
         elif isinstance(arff, np.ndarray): # convert 2D numpy array to arff
             logger.debug("Creating ARFF from ND_ARRAY")
             self.data = arff
+            self._copy_and_slice_arff(self, row_idx, col_idx, label_count, name)
         else:
             logger.debug("Creating Empty Arff object")
             # Empty arff data structure
@@ -68,22 +70,6 @@ class Arff:
             self.str_to_enum = [{} for x in range(columns)]       if not self.str_to_enum else self.str_to_enum
             self.enum_to_str = [{} for x in range(columns)]       if not self.enum_to_str else self.enum_to_str
             self.label_columns = []
-
-    # def init_from(self, arff, row_start, col_start, row_count, col_count):
-    #     """Initialize the matrix with a portion of another matrix"""
-    #     if row_start is None:
-    #         row_start = 0
-    #     if col_start is None:
-    #         col_start = 0
-    #     if row_count is None:
-    #         row_count = arff.shape[0]
-    #     if col_count is None:
-    #         col_count = arff.shape[1]
-    #
-    #     self.data = arff.data[row_start:row_start + row_count, col_start:col_start + col_count]
-    #     self.attr_names = arff.attr_names[col_start:col_start + col_count]
-    #     self.str_to_enum = arff.str_to_enum[col_start:col_start + col_count]
-    #     self.enum_to_str = arff.enum_to_str[col_start:col_start + col_count]
 
     def set_size(self, rows, cols):
         """Resize this matrix (and set all attributes to be continuous)"""
@@ -249,12 +235,14 @@ class Arff:
             self.label_count = sum(slicer(label_list, col_idx))
         else:
             self.label_count = label_count
+
+        ## Update main numpy array
         self.data = arff.data[row_idx, col_idx]
         if len(self.shape) < 2:
-            warnings.warn("Unexpected array dimension (should be 2, not {}".format(len(self.shape)))
+            warnings.warn("Unexpected array dimension (should be 2, not {})".format(len(self.shape)))
 
+        ## Update all other features
         self.dataset_name = dataset_name
-
         self.attr_names = slicer(arff.attr_names,col_idx)
         self.attr_types = slicer(arff.attr_types,col_idx)
         self.str_to_enum = slicer(arff.str_to_enum,col_idx)
@@ -312,8 +300,7 @@ class Arff:
         return nominal
 
     def shuffle(self, buddy=None):
-        """Shuffle the row order. If a buddy Matrix is provided, it will be shuffled in the same order. By default, labels
-            and features of arff file are shuffled.
+        """Shuffle the row order. If a buddy Arff is provided, it will be shuffled in the same order.
         """
         if not buddy:
             np.random.shuffle(self.data)
@@ -324,27 +311,27 @@ class Arff:
             np.random.shuffle(temp)
             self.data, buddy.data = temp[:, :self.shape[1]], temp[:, self.shape[1]:]
 
-    def column_mean(self, col=None):
+    def column_mean(self, col):
         """Get the mean of the specified column"""
-        col = slice(0, None) if col is None else col
+        #col = slice(0, None) if col is None else col
         col_data = self.data[:,col]
         return np.mean(col_data[np.isfinite(col_data)])
 
-    def column_min(self, col=None):
+    def column_min(self, col):
         """Get the min value in the specified column"""
-        col = slice(0, None) if col is None else col
+        #col = slice(0, None) if col is None else col
         col_data = self.data[:,col]
         return np.min(col_data[np.isfinite(col_data)])
 
-    def column_max(self, col=None):
+    def column_max(self, col):
         """Get the max value in the specified column"""
-        col = slice(0, None) if col is None else col
+        #col = slice(0, None) if col is None else col
         col_data = self.data[:,col]
         return np.max(col_data[np.isfinite(col_data)])
 
-    def most_common_value(self, col=None):
+    def most_common_value(self, col):
         """Get the most common value in the specified column"""
-        col = slice(0, None) if col is None else col
+        #col = slice(0, None) if col is None else col
         col_data = self.data[:,col]
         (val, count) = stats.mode(col_data[np.isfinite(col_data)])
         return val[0]
@@ -378,7 +365,7 @@ class Arff:
             values = []
             for j in range(len(r)):
                 if not self.is_nominal(j):
-                    if self.is_missing(r[j]):
+                    if not self.is_missing(r[j]):
                         values.append(str(r[j]))
                     else:
                         values.append("?")
@@ -425,7 +412,7 @@ class Arff:
         """ Add columns from 2D array-like object to "data" object (2D numpy array). Number of rows must match existing 2D numpy array.
         Args:
             columns (array-like): columns can be an Arff, numpy array, or list
-            attr_names (array): Names of columns to be appended
+            attr_names (list): Names of columns to be appended
         """
         columns_to_add = self.nd_array(columns)
         if self.shape[0] != columns_to_add.shape[0]:
