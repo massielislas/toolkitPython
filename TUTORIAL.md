@@ -45,6 +45,9 @@ new_arff = Arff(credit_approxal, row_idx = [0,2], col_idx=slice(0,10))
 
 # Get row 1, all columns
 new_arff = Arff(credit_approxal, row_idx = 1)
+
+# Don't do this
+new_arff = Arff(credit_approxal, row_idx = [2,3,8], col_idx = [1,2,3])
 ```
 
 This new_Arff object will should copy the numpy array data underlying the original Arff. Arff.copy() can also be used to make a safe, deep copy of an Arff object.
