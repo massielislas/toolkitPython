@@ -15,8 +15,10 @@ Numpy is Python's premier numerical array module. While Numpy arrays handle n-di
 
 The array can also be "sliced" to obtain subsets:
 ```
-# Get first two rows, from fourth column to the end
-my_array[0:2, 4:]
+my_array = np.asarray(range(0,25)).reshape(5,5)
+
+# Get first two rows, from 4th column to the end
+my_array[0:2, 3:]
 
 # Get every other row, start at last column and go backward
 my_array[::2, -1::-1]
