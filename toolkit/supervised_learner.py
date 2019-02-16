@@ -25,7 +25,7 @@ class SupervisedLearner:
         :type features: [float]
         :type labels: [float]
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def measure_accuracy(self, features, labels, confusion=None, eval_method=None):
         """
