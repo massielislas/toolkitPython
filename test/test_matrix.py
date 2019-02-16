@@ -17,7 +17,7 @@ class TestMatrix(TestCase):
         data = np.array([[1.5, -6, 1.0],
                          [2.3, -8, 2],
                          [4.1, self.infinity, 2]])
-        m = Arff(data)
+        m = Arff(data, label_count=1)
         m.attr_names = ['A', 'B', 'C']
         m.str_to_enum = [{}, {}, {'R': 0, 'G': 1, 'B': 2}]
         m.enum_to_str = [{}, {}, {0: 'R', 1: 'G', 2: 'B'}]
@@ -29,7 +29,7 @@ class TestMatrix(TestCase):
                    [0.3, 1.3, 2.3, 3.3, 2.0],
                    [0.4, 1.4, 2.4, 3.4, 2.0]])
 
-        m2 = Arff(data2)
+        m2 = Arff(data2, label_count=1)
         m2.attr_names = ['A', 'B', 'C', 'D', 'E']
         m2.str_to_enum = [{}, {}, {}, {}, {'R': 0, 'G': 1, 'B': 2}]
         m2.enum_to_str = [{}, {}, {}, {}, {0: 'R', 1: 'G', 2: 'B'}]
@@ -205,6 +205,30 @@ class TestMatrix(TestCase):
             test_matrix.append_columns(self.m.data[:1,:])
         self.assertTrue('Incompatible number of rows' in str(context.exception))
 
+
+    def test_get_features(self):
+        """ Tests construction of Arff from path, arff, numpy array
+        """
+        # Create a Matrix object from arff
+        credit = Arff(arff=self.credit_data_path, label_count=1)
+        credit.label_count=0
+        np.testing.assert_equal(credit.data, credit.get_features().data)
+
+        ## Test label inference
+        credit.label_count = 5
+        self.assertEqual(credit.get_labels().shape, (690, 5))
+
+        ## Copy last 8 columns
+        credit2 = Arff(credit, col_idx=slice(-8, None))
+        self.assertEqual(credit2.label_count, 5)
+        self.assertEqual((690,3), credit2.get_features().shape)
+
+        ## Verify 0 labels
+        credit.label_count = 0
+        self.assertEqual((690, 16), credit.get_features().shape)
+        self.assertEqual((690, 0), credit.get_labels().shape)
+
 if __name__=="__main__":
-    suite = TestLoader().loadTestsFromTestCase(TestMatrix)
+    #my_test = TextMatrix.test_get_features
+    suite = TestLoader().loadTestsFromTestCase(TestMatrix.test_get_features)
     TextTestRunner(verbosity=2).run(suite)

@@ -29,13 +29,13 @@ Most of the datasets we used are stored in an .arff file format. The toolkit can
 
 ```
 arff_path = r"./test/datasets/creditapproval.arff"
-credit_approval = arff.Arff(arff=arff_path)
+credit_approval = arff.Arff(arff=arff_path, label_count=1)
 ```
 
 Here, `credit_approval` is an Arff object. The Arff object is mostly a wrapper around a 2D numpy array, which is stored as the 'data' Arff class variable, i.e. `credit.data`. The Arff object also contains all the information needed to recreate the Arff file, including feature names, the number of columns that are considered "outputs" (labels), whether each feature is nominal or continuous, and the list of possible values for nominal features. Note that:
 
 * The Arff object automatically encodes nominal/string features as integers. 
-* The toolkit presently supports 1 label, which is assumed to be the rightmost column.
+* The toolkit presently supports 1 label, which is assumed to be the rightmost column(s). The number of labels should be passed explicitly with `label_count`.
 * `print(credit_approval)` will print the object as Arff text. Alternatively, a .arff style string can be obtained by taking `str(credit_approval)`.
 
 The Arff object can also be sliced like traditional numpy arrays. E.g., the first row of data as a numpy array would be:
@@ -48,20 +48,20 @@ Note that slicing this way returns a numpy 2D array, not an Arff object. To crea
 
 ```
 # Get first 10 rows, first 3 columns
-new_arff = Arff(credit_approxal, row_idx = slice(0,10), col_idx=slice(0,3))
+new_arff = Arff(credit_approxal, row_idx = slice(0,10), col_idx=slice(0,3), label_count=1)
 ```
 
 Alternatively, one can use a `list` or `int` for either the `col_idx` or `row_idx`, but they should not be used for both simultaneously:
 
 ```
 # Get rows 0 and 2, columns 0 through 9
-new_arff = Arff(credit_approxal, row_idx = [0,2], col_idx=slice(0,10))
+new_arff = Arff(credit_approxal, row_idx = [0,2], col_idx=slice(0,10), label_count=1)
 
 # Get row 1, all columns
-new_arff = Arff(credit_approxal, row_idx = 1)
+new_arff = Arff(credit_approxal, row_idx = 1, label_count=1)
 
 # Don't do this
-new_arff = Arff(credit_approxal, row_idx = [2,3,8], col_idx = [1,2,3])
+new_arff = Arff(credit_approxal, row_idx = [2,3,8], col_idx = [1,2,3], label_count=1)
 ```
 
 This new_Arff object will should copy the numpy array data underlying the original Arff. Arff.copy() can also be used to make a safe, deep copy of an Arff object.
@@ -104,7 +104,7 @@ Session objects can be created to facilitate training. Session objects, at a min
 
 ```
 # Create arff object
-credit_approval = arff.Arff(arff=arff_path)
+credit_approval = arff.Arff(arff=arff_path, label_count=1)
 
 # Declare learner
 my_learner = baseline_learner.BaselineLearner

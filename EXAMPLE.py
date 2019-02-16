@@ -5,7 +5,7 @@ from toolkit import supervised_learner, manager, arff
 arff_path = r"./test/datasets/creditapproval.arff"
 
 ## Read in arff file
-credit_approval = arff.Arff(arff=arff_path)
+credit_approval = arff.Arff(arff=arff_path, label_count=1)
 
 ## Example usage
 

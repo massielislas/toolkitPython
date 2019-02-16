@@ -23,7 +23,7 @@ class Arff:
     To do: Change backend to use Pandas dataframe
     """
 
-    def __init__(self, arff=None, row_idx=None, col_idx=None, label_count=1, name="Untitled"):
+    def __init__(self, arff=None, row_idx=None, col_idx=None, label_count=None, name="Untitled"):
         """
         Args:
             arff (str or Arff object): Path to arff file or another arff file
@@ -52,10 +52,15 @@ class Arff:
         elif isinstance(arff, str) or (sys.version_info < (3, 0) and isinstance(arff, unicode)):  # load from path
             logger.debug("Creating ARFF from file path")
             self.load_arff(arff)
+            if label_count is None: # if label count is not specified, assume 1
+                label_count = 1
+                warnings.warn("Label count not specified, using 1")
             self._copy_and_slice_arff(self, row_idx, col_idx, label_count, name)
         elif isinstance(arff, np.ndarray): # convert 2D numpy array to arff
             logger.debug("Creating ARFF from ND_ARRAY")
             self.data = arff
+            if label_count is None:
+                warnings.warn("Label count not specified, using None")
             self._copy_and_slice_arff(self, row_idx, col_idx, label_count, name)
         else:
             logger.debug("Creating Empty Arff object")
@@ -259,12 +264,15 @@ class Arff:
         """
         if row_idx is None:
             row_idx = slice(0,None)
-        return self.create_subset_arff(row_idx=row_idx, col_idx=slice(0,-self.label_count), label_count=0)
+        end_idx = None if self.label_count == 0 else -self.label_count # return all if no labels
+        return self.create_subset_arff(row_idx=row_idx, col_idx=slice(0,end_idx), label_count=0)
 
     def get_labels(self, row_idx=None):
         if row_idx is None:
             row_idx = slice(0,None)
-        new_arff = self.create_subset_arff(row_idx=row_idx, col_idx=slice(-self.label_count, None), label_count=self.label_count)
+
+        start_idx = self.shape[1] if -self.label_count == 0 else -self.label_count # return nothing if no labels
+        new_arff = self.create_subset_arff(row_idx=row_idx, col_idx=slice(start_idx, None), label_count=self.label_count)
         return new_arff
 
     def attr_name(self, col):
@@ -373,7 +381,7 @@ class Arff:
                     try:
                         values.append(self.enum_to_str[j][r[j]])
                     except(Exception) as e:
-                        print(out_string,values)
+                        #print(out_string,values)
                         if self.is_missing(r[j]):
                             values.append("?")
                         else:

@@ -33,9 +33,11 @@ class BaselineLearner(SupervisedLearner):
     def train(self, features, labels):
         """
         This function should loop through the data and create/update a ML model until some stopping criteria is reached
-        :type features: Arff
-        :type labels: Arff
+        Args:
+            features (Arff): 2D array of feature values (all instances)
+            labels (Arff): 2D array of feature labels (all instances)
         """
+
         self.average_label = []
         for i in range(labels.shape[1]): # for each label column
             if labels.is_nominal(i): # assumes 1D label
@@ -46,9 +48,11 @@ class BaselineLearner(SupervisedLearner):
     def predict(self, features):
         """
         This function runs 1 instance through the model and returns the model's predicted label
-        :type features: [float]
+        TO DO: Add vectorization option
+        Args:
+            features (array-like): Array of feature values
+        Returns:
+            array-like: 1D array of predictions (1 for each output class)
         """
         return self.average_label
-
-
 

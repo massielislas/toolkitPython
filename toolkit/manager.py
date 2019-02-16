@@ -133,7 +133,7 @@ class ToolkitSession:
                     * Learner keyword arguments can be passed to the session
                     * A learner class can also already be instantiated when passed
         """
-    def __init__(self, arff, learner, eval_method=None, eval_parameter=None, print_confusion_matrix=False, normalize=False, random_seed=None, **kwargs):
+    def __init__(self, arff, learner, eval_method=None, eval_parameter=None, print_confusion_matrix=False, normalize=False, random_seed=None, label_count=1, **kwargs):
         """
         Args:
             arff: Can be arff path, numpy array, or arff object
@@ -169,7 +169,7 @@ class ToolkitSession:
         self.test_accuracy = []
 
         # load the ARFF file
-        self.arff = Arff(arff)
+        self.arff = Arff(arff, label_count=label_count)
         if isinstance(arff, Arff):
             arff = arff.dataset_name
 
