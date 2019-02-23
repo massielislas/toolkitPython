@@ -1,6 +1,8 @@
 from toolkit import baseline_learner
 from toolkit import manager, arff
-from toolkit.graph_tools import *
+from toolkit import graph_tools
+import matplotlib.pyplot as plt
+import numpy as np
 
 arff_path = r"./test/datasets/creditapproval.arff"
 
@@ -49,11 +51,13 @@ cm = session3.learner.get_confusion_matrix(credit_approval.get_features(), credi
 print(cm)
 
 ## Graph a function
-y = lambda x: 5 * x**2 + 1 # equation of a parabola
-graph_function(y)
+y_func = lambda x: 5 * x**2 + 1 # equation of a parabola
+x = np.linspace(-1, 1, 100)
+plt.plot(x, y_func(x))
+plt.show()
 
-## Graph 2 variables with labels coloring
+## Scatter plot with 2 variables with labels coloring
 x = credit_approval[:,1]
 y = credit_approval[:,2]
 labels = credit_approval[:, -1]
-graph(x=x, y=y, labels=labels, xlim=(0,30), ylim=(0,30))
+graph_tools.graph(x=x, y=y, labels=labels, xlim=(0,30), ylim=(0,30))

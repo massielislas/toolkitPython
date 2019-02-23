@@ -150,6 +150,31 @@ The toolkit also supports end-to-end training, for automatic training, training/
 session2 = manager.ToolkitSession(arff=credit_approval, learner=my_learner, eval_method="random", eval_parameter=.7)
 ```
 
+### Graphing
+A tiny graphing wrapper around matplotlib is included. See graph_tools.py.
+
+```
+from toolkit import graph_tools
+import matplotlib.pyplot as plt
+import numpy as np
+
+arff_path = r"./test/datasets/creditapproval.arff"
+credit_approval = arff.Arff(arff=arff_path, label_count=1)
+
+
+## Graph a function using matplotlib
+y_func = lambda x: 5 * x**2 + 1 # equation of a parabola
+x = np.linspace(-1, 1, 100)
+plt.plot(x, y_func(x))
+plt.show()
+
+## Scatter plot with 2 variables with labels coloring using graph_tools.py
+x = credit_approval[:,1]
+y = credit_approval[:,2]
+labels = credit_approval[:, -1]
+graph_tools.graph(x=x, y=y, labels=labels, xlim=(0,30), ylim=(0,30))
+```
+
 ### Command-line:
 Training and testing can be performed via command-line (as in the Java and C++ toolkits).
 Running the toolkit from command-line will require modifying the toolkit to 1) import your learner and 2) correctly parse the `learningAlgorithm` argument to instantiate your learner class.
