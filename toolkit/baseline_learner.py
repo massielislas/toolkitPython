@@ -24,10 +24,10 @@ class BaselineLearner(SupervisedLearner):
         """
 
         ## Example initializations
+        self.example_hyperparameter = example_hyperparameter
 
         # self.average_label = []
         # self.data_shape = data.shape if not data is None else None
-        # self.example_hyperparameter = example_hyperparameter
         # self. weights = np.random.random(self.data_shape)
 
     def train(self, features, labels):
@@ -45,14 +45,13 @@ class BaselineLearner(SupervisedLearner):
             else:
                 self.average_label += [labels.column_mean(0)]  # continuous
 
-    def predict(self, features):
-        """
-        This function runs 1 instance through the model and returns the model's predicted label
-        TO DO: Add vectorization option
+    def predict_all(self, features):
+        """ Make a prediction for each instance in dataset
         Args:
-            features (array-like): Array of feature values
+            features (2D array-like): Array of feature values
         Returns:
-            array-like: 1D array of predictions (1 for each output class)
+            array-like: 2D array of predictions (shape = instances, # of output classes)
         """
-        return self.average_label
+        pred = np.tile(self.average_label, features.shape[0]) # make a 1D vector of predictions, 1 for each instance
+        return pred.reshape(-1,1) # reshape this so it is the correct shape = instances, # of output classes
 

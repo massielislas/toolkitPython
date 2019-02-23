@@ -3,6 +3,7 @@ from .arff import Arff
 import math
 import numpy as np
 import warnings
+#from sklearn.metrics import confusion_matrix
 # this is an abstract class
 
 
@@ -17,7 +18,7 @@ class SupervisedLearner:
         """
         raise NotImplementedError()
 
-    def predict(self, features):
+    def predict_all(self, features):
         """
         A feature vector goes in. A label vector comes out. (Some supervised
         learning algorithms only support one-dimensional label vectors. Some
@@ -27,79 +28,128 @@ class SupervisedLearner:
         """
         raise NotImplementedError()
 
-    def measure_accuracy(self, features, labels, confusion=None, eval_method=None):
+    def check_shape(self, arr1, arr2):
+        try:
+            assert arr1.shape[0]==arr2.shape[0] # must have same number of instances
+        except:
+            raise Exception("Arrays must have same dimension along row axis; shape mismatch {} {}".format(arr1.shape[0],arr2.shape[0]))
+
+    def measure_accuracy(self, features, labels, eval_method=None):
         """
         The model must be trained before you call this method. If the label is nominal,
         it returns the predictive accuracy. If the label is continuous, it returns
-        the root mean squared error (RMSE). If confusion is non-NULL, and the
-        output label is nominal, then confusion will hold stats for a confusion matrix.
+        the root mean squared error (RMSE).
         :type features: array-like
         :type labels: Arff
         :type confusion: Arff
         :rtype float
         """
-
-        # If no eval_method is passed
-        if confusion:
-            if not isinstance(confusion,Arff):
-                warnings.warn("Confusion argument should be Arff obj, creating empty arff")
-                confusion = Arff()
+        self.check_shape(features, labels)
 
         if eval_method==None:
             if isinstance(labels, Arff):
+                # Check first label, if nominal, measure accuracy
                 if labels.is_nominal():
                     eval_method = "accuracy"
                 else:
-                    eval_method = "sse"
+                    eval_method = "rmse"
             elif isinstance(labels, np.ndarray):
                 warnings.warn("Numpy array passed with no evaluation method, measuring accuracy")
+                eval_method = "accuracy"
 
-        if isinstance(labels, np.ndarray):
-            labels=Arff(labels)
-
-        if features.shape[0] != labels.shape[0]:
-            raise Exception("Expected the features and labels to have the same number of rows")
-        if labels.shape[1] != 1:
-            raise Exception("Sorry, this method currently only supports one-dimensional labels")
-        if features.shape[0] == 0:
-            raise Exception("Expected at least one row")
-
-        if eval_method == "sse":
-            # if isinstance(labels, Arff):
-            #     labels = labels.data
-
-            # label is continuous
-            pred = [0.0]
-            sse = 0.0
-            for i in range(features.shape[0]):
-                feat = features[i]
-                targ = labels.data[i]
-                pred = self.predict(feat)
-                delta = targ - pred
-                sse += delta**2
-            return math.sqrt(sse / features.shape[0])
-
+        if eval_method == "rmse":
+            return self.calc_rmse(features,labels)
         elif eval_method == "accuracy":
+            return self.calc_accuracy(features, labels)
 
-            # label is nominal, so measure predictive accuracy
-            if confusion: # this assumes arff-class labels
-                confusion.set_size(labels.unique_value_count(), labels.unique_value_count())
-                confusion.attr_names = [labels.attr_value(0, i) for [i] in labels]
+    def calc_rmse(self, features, labels):
+        self.check_shape(features, labels)
+        feat = features
+        targ = labels
+        pred = np.asarray(self.predict_all(feat))
+        delta = targ - pred
+        sse = np.sum(delta**2)
+        return (sse/features.shape[0])**.5
 
-            correct_count = 0
-            for i in range(features.shape[0]):
-                feat = features[i]
-                targ = int(labels.data[i,0]) ## THIS ASSUME 1-D OUTPUTS
+    def calc_accuracy(self, features, labels, return_scalar=True):
+        """ Calculates accuray. Supports multiple output/label dimensions. Returns an accuracy for each output.
 
-                if targ >= labels.unique_value_count():
-                    raise Exception("The label is out of range")
+        Args:
+            features (array-like, Arff):
+            labels (array-like, Arff):
+            return_scalar (bool): Return float (rather than ndarray); will return ndarray if multiple dimensional output
+        Returns:
+            Array of accuracies (one for each output dimension)
+        """
+        self.check_shape(features, labels)
+        feat = features
+        targ = (labels.data).astype(int)
+        pred = np.asarray(self.predict_all(feat)).astype(int)
+        accuracy = np.sum(targ==pred, axis=0)/features.shape[0]
 
-                # Assume predictions are integers 0-# of classes
-                pred = np.asarray(self.predict(feat)).astype(int)[0] ## ASSUME 1-D prediction
+        if return_scalar:
+            if accuracy.size==1:
+                [accuracy] = accuracy
+            else:
+                warnings.warn("return_scalar=True, but accuracy is a vector; returning accuracy as nd_array")
 
-                if confusion: # only working with one output?
-                    confusion.data[targ,pred] += 1
-                if (pred == targ).all():
-                    correct_count += 1
+        return accuracy
 
-            return correct_count / features.shape[0]
+    def get_confusion_matrix(self, features, labels):
+        # Get label names
+        label_unique_values=[]
+        if isinstance(labels, Arff) and len(labels.enum_to_str) > 0 and labels.enum_to_str[-1] != {}:
+            label_dict = labels.enum_to_str[-1] # get dictionary for last column
+            for i in range(0, len(label_dict)):
+                label_unique_values.append(label_dict[i]) # make sure in numerical order
+            label_unique_values = np.asarray(label_unique_values)
+        else:
+            label_unique_values = None
+
+        ## Prep/reshape
+        pred = np.asarray(self.predict_all(features)).reshape(-1)
+        labels = labels.reshape(-1)
+        self.check_shape(features, labels)
+
+        ## Get confusion matrix
+        cm = self.confusion_matrix(y_true=labels, y_pred=pred, labels=label_unique_values)
+
+        ## Prep to output
+        if not label_unique_values is None:
+            top_row = np.r_[[""], label_unique_values].reshape(1,-1)
+            p=np.c_[label_unique_values, cm]
+            cm = np.r_[top_row, p]
+        return cm
+
+    def confusion_matrix(self, y_true, y_pred, labels=None, sample_weight=None):
+        from scipy.sparse import coo_matrix
+
+        if sample_weight is None:
+            sample_weight = np.ones(y_true.shape[0], dtype=np.int64)
+        else:
+            sample_weight = np.asarray(sample_weight)
+
+        labels = np.asarray(labels)
+        if labels is None:
+            labels = np.unique(np.r_[y_true, y_pred])
+
+        n_labels = labels.size
+
+        # intersect y_pred, y_true with labels, eliminate items not in labels
+        ind = np.logical_and(y_pred < n_labels, y_true < n_labels)
+        y_pred = y_pred[ind]
+        y_true = y_true[ind]
+
+        # also eliminate weights of eliminated items
+        sample_weight = sample_weight[ind]
+
+        # Choose the accumulator dtype to always have high precision
+        if sample_weight.dtype.kind in {'i', 'u', 'b'}:
+            dtype = np.int64
+        else:
+            dtype = np.float64
+
+        CM = coo_matrix((sample_weight, (y_true, y_pred)),
+                        shape=(n_labels, n_labels), dtype=dtype,
+                        ).toarray()
+        return CM

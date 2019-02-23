@@ -19,7 +19,7 @@ class TestManager(TestCase):
 
     def test_commandline_from_python(self):
         ## Create manager - from commandline argument
-        args = r'-L baseline -A {} -E training'.format(self.iris_data)
+        args = r'-L baseline -A {} -E training -V'.format(self.iris_data)
         my_manager = manager.MLSystemManager()
         session = my_manager.create_session_from_argv(args)
         assert session.arff.data[0][0] == 5.1
@@ -36,7 +36,7 @@ class TestManager(TestCase):
 
 
     def test_commandline_from_subprocess(self):
-        args = r'-L baseline -A {} -E training'.format(self.iris_data)
+        args = r'-L baseline -A {} -E training -V'.format(self.iris_data)
         child = subprocess.Popen([r"python", args], shell=False)
         print(child.communicate()[0],child.returncode)
         #subprocess.popen()

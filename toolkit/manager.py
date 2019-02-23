@@ -13,18 +13,17 @@ import warnings
 import numpy as np
 
 """ IDEAS:
-
-* Pandas
-* Vectorization
-* object variables of session
-* help file
-* return sliced arff file?
-
-* Still support END-TO-END commandline stuff
-* Also support: read in arff file, feed arff to learner, feed in learner to session
-* ARFF class: keep track of feature types!!
-
+* Use Pandas instead of Arff class
 """
+
+np.set_printoptions(precision=4)
+
+def rnd4(obj):
+    if isinstance(obj, np.ndarray):
+        return obj
+    elif isinstance(obj, (int, float, complex)):
+        return "{:.4f}".format(obj)
+
 
 class MLSystemManager:
     """ This class manages Toolkit sessions. Each session is initiated with a specific dataset (arff file), evaluation type (training, test, etc.), and learner.
@@ -159,7 +158,6 @@ class ToolkitSession:
             self.learner = learner
             self.learner_name = type(learner).__name__
 
-
         self.print_confusion_matrix_flag = print_confusion_matrix
         self.eval_method = eval_method
         self.eval_parameter = eval_parameter
@@ -189,23 +187,26 @@ class ToolkitSession:
 
     def main(self):
         if self.eval_method == "training":
-            self.train(self.arff.get_features(), self.arff.get_labels(), self.print_confusion_matrix_flag )
+            self.train(self.arff.get_features(), self.arff.get_labels())
+            self._print_confusion_matrix(self.arff.get_features(), self.arff.get_labels())
         elif self.eval_method == "random":
             train_features, train_labels, test_features, test_labels = self.training_test_split(
                 train_percent=self.eval_parameter)
-            self.train(train_features, train_labels, self.print_confusion_matrix_flag)
-            self.test(test_features, test_labels, self.print_confusion_matrix_flag)
+            self.train(train_features, train_labels)
+            self.test(test_features, test_labels)
+            self._print_confusion_matrix(test_features, test_labels)
 
         elif self.eval_method == "static":
-            self.train(self.arff.get_features(), self.arff.get_labels(), self.print_confusion_matrix_flag)
+            self.train(self.arff.get_features(), self.arff.get_labels())
             arff_file = self.eval_parameter
             test_data = Arff(arff_file)
             if self.normalize:
                 test_data.normalize()
-            self.test(features=test_data.get_features(), labels=test_data.get_labels(), print_confusion=self.print_confusion_matrix_flag)
+            self.test(features=test_data.get_features(), labels=test_data.get_labels())
+            self._print_confusion_matrix(features=test_data.get_features(), labels=test_data.get_labels())
 
         elif self.eval_method == "cross":
-            self.cross_validate(self.eval_parameter)
+            self.cross_validate(self.eval_parameter) # confusion matrix not supported for CV
         else:
             raise Exception("Unrecognized evaluation method '{}'".format(self.eval_method))
 
@@ -223,8 +224,8 @@ class ToolkitSession:
         train_percent = float(train_percent)
         if train_percent < 0 or train_percent > 1:
             raise Exception("Percentage for random evaluation must be between 0 and 1")
-        print("Percentage used for training: {}".format(train_percent))
-        print("Percentage used for testing: {}".format(1 - train_percent))
+        print("Percentage used for training: {}".format(rnd4(train_percent)))
+        print("Percentage used for testing: {}".format(rnd4(1 - train_percent)))
 
         train_size = int(train_percent * self.arff.shape[0])
 
@@ -236,7 +237,7 @@ class ToolkitSession:
 
         return train_features, train_labels, test_features, test_labels
 
-    def train(self, features=None, labels=None, print_confusion=None):
+    def train(self, features=None, labels=None):
         """By default, this trains on entire arff file. Features and labels options are given to e.g.
             train on only a part of the data
         Args:
@@ -251,43 +252,29 @@ class ToolkitSession:
             features = self.arff.get_features()
         if labels is None:
             labels = self.arff.get_labels()
-        if print_confusion is None:
-            print_confusion = self.print_confusion_matrix_flag
-
-        confusion = None
-        if print_confusion and labels.unique_value_count()>0:
-            confusion = Arff(np.zeros([labels.unique_value_count(), labels.unique_value_count()]))
 
         start_time = time.time()
         self.learner.train(features, labels)
         elapsed_time = time.time() - start_time
-        print("Time to train (in seconds): {}".format(elapsed_time))
-        accuracy = self.learner.measure_accuracy(features, labels, confusion)
+        print("Time to train (in seconds): {}".format(rnd4(elapsed_time)))
+        accuracy = self.learner.measure_accuracy(features, labels)
         self.training_accuracy.append(accuracy)
-        print("Training set accuracy: " + str(accuracy))
+        print("Training set accuracy: {}".format(rnd4(accuracy)))
 
-        if print_confusion:
-            self.print_confusion_matrix(confusion)
 
-    def test(self, features, labels, print_confusion=None):
+    def test(self, features, labels):
             """ This eval_method 1) creates a 'random' training/test split according to some user-specified percentage,
                             2) trains the data
                             3) reports training AND test accuracy
             """
-            if print_confusion is None:
-                print_confusion = self.print_confusion_matrix_flag
-
-            confusion_matrix = Arff() if print_confusion else None
-            test_accuracy = self.learner.measure_accuracy(features, labels, confusion_matrix)
+            test_accuracy = self.learner.measure_accuracy(features, labels)
             self.test_accuracy.append(test_accuracy)
-            print("Test set accuracy: {}".format(test_accuracy))
-            if print_confusion:
-                self.print_confusion_matrix(confusion_matrix)
+            print("Test set accuracy: {}".format(rnd4(test_accuracy)))
 
-    def print_confusion_matrix(self, confusion_matrix):
-            print("\nConfusion matrix: (Row=target value, Col=predicted value)")
-            print(confusion_matrix.data)
-            print("")
+    def _print_confusion_matrix(self, features, labels):
+        if self.print_confusion_matrix_flag:
+            cm = self.learner.get_confusion_matrix(features, labels)
+            print(cm)
 
     def generate_fold(self, folds):
         for i in range(folds):
@@ -325,14 +312,14 @@ class ToolkitSession:
                 # Get test accuracy
                 test_accuracy = self.learner.measure_accuracy(test_features, test_labels)
                 sum_accuracy += test_accuracy
-                print("Rep={}, Fold={}, Accuracy={}".format(rep_counter, fold_counter, test_accuracy))
+                print("Rep={}, Fold={}, Accuracy={}".format(rep_counter, fold_counter, rnd4(test_accuracy)))
 
                 self.training_accuracy.append(training_accuracy)
                 self.test_accuracy.append(test_accuracy)
 
-                elapsed_time /= (reps * folds)
-                print("Average time to train (in seconds): {}".format(elapsed_time))
-                print("Mean accuracy={}".format(sum_accuracy / (reps * folds)))
+            elapsed_time /= (reps * folds)
+            print("Average time to train (in seconds): {}".format(rnd4(elapsed_time)))
+            print("Mean accuracy={}".format(rnd4(sum_accuracy / (reps * folds))))
 
 class ToolkitArgParser(argparse.ArgumentParser):
     def __init__(self, description=None, doc_string=None):
@@ -343,7 +330,6 @@ class ToolkitArgParser(argparse.ArgumentParser):
         sys.stderr.write('Error: %s\n' % message)
         print(self.doc_string)
         sys.exit()
-
 
 if __name__ == '__main__':
     manager = MLSystemManager()

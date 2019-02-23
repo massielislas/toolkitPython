@@ -446,6 +446,11 @@ class Arff:
         nominal_idx = [i for i,feature_type in enumerate(self.attr_types) if feature_type=="nominal"]
         return nominal_idx if nominal_idx else None
 
+    def reshape(self, tup):
+        if self.is_iterable(tup):
+            return self.data.reshape(*tup)
+        return self.data.reshape(tup)
+
     def __getitem__(self, index):
         """ Trivial wrapper for the 2D Numpy array data
         Args:

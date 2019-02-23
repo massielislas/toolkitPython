@@ -5,6 +5,7 @@ from toolkit.baseline_learner import BaselineLearner
 from toolkit.arff import Arff
 from toolkit import utils
 import os
+import numpy as np
 
 class TestBaselineLearner(TestCase):
     def setUp(self):
@@ -21,8 +22,8 @@ class TestBaselineLearner(TestCase):
 
     def test_predict(self):
         self.learner.train(self.features, self.labels)
-        label = self.learner.predict(self.features[0])
-        self.assertListEqual(self.learner.average_label, label)
+        label = self.learner.predict_all(self.features[0])[0] # just check first one
+        np.testing.assert_almost_equal(self.learner.average_label, label)
 
 if __name__=="__main__":
     suite = TestLoader().loadTestsFromTestCase(TestBaselineLearner)

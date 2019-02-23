@@ -4,6 +4,7 @@ __pycache__/
 
 # Implemented components
 implemented/
+*.ipynb
 
 # C extensions
 *.so

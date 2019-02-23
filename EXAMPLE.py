@@ -1,6 +1,6 @@
-from toolkit import baseline_learner, manager, arff
-import numpy as np
-from toolkit import supervised_learner, manager, arff
+from toolkit import baseline_learner
+from toolkit import manager, arff
+from toolkit.graph_tools import *
 
 arff_path = r"./test/datasets/creditapproval.arff"
 
@@ -22,7 +22,7 @@ print(features.data)
 print(features[0, :])
 
 # Get all labels as numpy array using slicing
-lables = credit_approval.get_labels()[:]
+labels = credit_approval.get_labels()[:]
 
 # Manual Training/Test
 my_learner = baseline_learner.BaselineLearner
@@ -34,8 +34,7 @@ print(session.training_accuracy)
 
 # Pass on hyperparameters to learner
 session = manager.ToolkitSession(arff=credit_approval, learner=my_learner, data=credit_approval, example_hyperparameter=.5)
-print(session.learner.data_shape, (690, 16))
-print(session.learner.example_hyperparameter, .5)
+print(session.learner.example_hyperparameter) # .5
 
 # Automatic
 session2 = manager.ToolkitSession(arff=credit_approval, learner=my_learner, eval_method="random", eval_parameter=.7)
@@ -44,3 +43,17 @@ session2 = manager.ToolkitSession(arff=credit_approval, learner=my_learner, eval
 session3 = manager.ToolkitSession(arff=credit_approval, learner=my_learner)
 session3.cross_validate(folds=10, reps=3)
 print(session3.test_accuracy)
+
+# Print Confusion matrix
+cm = session3.learner.get_confusion_matrix(credit_approval.get_features(), credit_approval.get_labels())
+print(cm)
+
+## Graph a function
+y = lambda x: 5 * x**2 + 1 # equation of a parabola
+graph_function(y)
+
+## Graph 2 variables with labels coloring
+x = credit_approval[:,1]
+y = credit_approval[:,2]
+labels = credit_approval[:, -1]
+graph(x=x, y=y, labels=labels, xlim=(0,30), ylim=(0,30))
