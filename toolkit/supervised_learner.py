@@ -38,11 +38,14 @@ class SupervisedLearner:
         """
         The model must be trained before you call this method. If the label is nominal,
         it returns the predictive accuracy. If the label is continuous, it returns
-        the root mean squared error (RMSE).
-        :type features: array-like
-        :type labels: Arff
-        :type confusion: Arff
-        :rtype float
+        the mean squared error (MSE).
+
+        Args:
+            features (Arff, array-like):
+            labels (Arff, array-like):
+
+        Returns:
+            float
         """
         self.check_shape(features, labels)
 
@@ -52,24 +55,24 @@ class SupervisedLearner:
                 if labels.is_nominal():
                     eval_method = "accuracy"
                 else:
-                    eval_method = "rmse"
+                    eval_method = "mse"
             elif isinstance(labels, np.ndarray):
                 warnings.warn("Numpy array passed with no evaluation method, measuring accuracy")
                 eval_method = "accuracy"
 
-        if eval_method == "rmse":
-            return self.calc_rmse(features,labels)
+        if eval_method == "mse":
+            return self.calc_mse(features, labels)
         elif eval_method == "accuracy":
             return self.calc_accuracy(features, labels)
 
-    def calc_rmse(self, features, labels):
+    def calc_mse(self, features, labels):
         self.check_shape(features, labels)
         feat = features
         targ = labels
         pred = np.asarray(self.predict_all(feat))
         delta = targ - pred
         sse = np.sum(delta**2)
-        return (sse/features.shape[0])**.5
+        return sse/features.shape[0]
 
     def calc_accuracy(self, features, labels, return_scalar=True):
         """ Calculates accuray. Supports multiple output/label dimensions. Returns an accuracy for each output.
@@ -83,7 +86,12 @@ class SupervisedLearner:
         """
         self.check_shape(features, labels)
         feat = features
-        targ = (labels.data).astype(int)
+
+        if isinstance(labels, Arff):
+            targ = (labels.data).astype(int)
+        else:
+            targ = (labels).astype(int)
+
         pred = np.asarray(self.predict_all(feat)).astype(int)
         accuracy = np.sum(targ==pred, axis=0)/features.shape[0]
 
@@ -96,6 +104,15 @@ class SupervisedLearner:
         return accuracy
 
     def get_confusion_matrix(self, features, labels):
+        """ Get confusion matrix from features, labels
+
+        Args:
+            features:
+            labels:
+
+        Returns:
+            confusion_matrix (np.ndarray)
+        """
         # Get label names
         label_unique_values=[]
         if isinstance(labels, Arff) and len(labels.enum_to_str) > 0 and labels.enum_to_str[-1] != {}:
@@ -114,7 +131,7 @@ class SupervisedLearner:
         ## Get confusion matrix
         cm = self.confusion_matrix(y_true=labels, y_pred=pred, labels=label_unique_values)
 
-        ## Prep to output
+        ## Prep to output - add label values
         if not label_unique_values is None:
             top_row = np.r_[[""], label_unique_values].reshape(1,-1)
             p=np.c_[label_unique_values, cm]
@@ -122,6 +139,17 @@ class SupervisedLearner:
         return cm
 
     def confusion_matrix(self, y_true, y_pred, labels=None, sample_weight=None):
+        """ Get confusion matrix from labels and predictions; mostly stolen from sci-kit learn
+
+        Args:
+            y_true (array-like):
+            y_pred (array-like):
+            labels (array-like): list/array of labels, only needed for size?
+
+        Returns:
+            confusion_matrix (np.ndarray)
+        """
+
         from scipy.sparse import coo_matrix
 
         if sample_weight is None:

@@ -142,6 +142,14 @@ session3.cross_validate(folds=10, reps=3)
 print(session3.test_accuracy)
 ```
 
+It can also create a confusion matrix (e.g. for nominal labels):
+
+```
+# Print Confusion matrix
+cm = session3.learner.get_confusion_matrix(credit_approval.get_features(), credit_approval.get_labels())
+print(cm)
+```
+
 ### End-to-end training
 The toolkit also supports end-to-end training, for automatic training, training/testing, and cross-validated training, similar to the C++ and Java versions of the toolkit. The `eval_method` and `eval_parameter` are the same as they are in the commandline variant and the C++ and Java toolkits.
 

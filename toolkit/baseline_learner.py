@@ -23,11 +23,11 @@ class BaselineLearner(SupervisedLearner):
             hyperparameters:
         """
 
-        ## Example initializations
+        ## Example initializations - leave in for testing
         self.example_hyperparameter = example_hyperparameter
+        self.data_shape = data.shape if not data is None else None
 
         # self.average_label = []
-        # self.data_shape = data.shape if not data is None else None
         # self. weights = np.random.random(self.data_shape)
 
     def train(self, features, labels):
