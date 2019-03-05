@@ -47,9 +47,8 @@ class DecisionTreeLearner(SupervisedLearner):
         """
         self.all_decisions = [i for i in range(len(features[0]))]
         root_node = TreeNode()
-        root_node.data = features.data
-        root_node.set_data(features.data)
-        root_node.labels = labels.data
+        root_node.set_features(features)
+        root_node.labels = labels
         output_classes_num = labels.unique_value_count(0)
 
         print("OUTPUT CLASSES", output_classes_num)
@@ -58,13 +57,12 @@ class DecisionTreeLearner(SupervisedLearner):
 
         for class_num in range(output_classes_num):
             pre_split = labels.data[:, 0] == class_num
-            outputs_of_class = labels.data[pre_split]
 
             # print(pre_split)
             # print(outputs_of_class)
 
-            class_count = len(outputs_of_class)
-            last_decision_made.information += ((-1) * class_count / last_decision_made.data_n) * math.log(class_count / last_decision_made.data_n, 2)
+            class_count = len(labels.data[pre_split])
+            last_decision_made.information += ((-1) * class_count / last_decision_made.features_n) * math.log(class_count / last_decision_made.features_n, 2)
 
         print('PARENT INFORMATION', last_decision_made.information)
 
@@ -94,8 +92,14 @@ class DecisionTreeLearner(SupervisedLearner):
                 attribute_value_node.add_decision(attribute)
                 attribute_value_node.feature_value_decision = attribute_value
 
-                pre_split = last_decision_made.data[:, attribute] == attribute_value
-                attribute_value_node.set_data(last_decision_made.data[pre_split])
+                pre_split = last_decision_made.features.data[:, attribute] == attribute_value
+                rows_to_keep = self.get_indices_by_boolean(pre_split)
+                # print(last_decision_made.features.data)
+                columns_to_keep = slice(last_decision_made.features.data[0].size)
+                # print(rows_to_keep)
+                # print(columns_to_keep)
+                new_features = last_decision_made.features.create_subset_arff(rows_to_keep, columns_to_keep, 0)
+                attribute_value_node.set_features(new_features)
                 attribute_value_node.labels = last_decision_made.labels[pre_split]
                 attribute_value_info_loss += 0
 
@@ -104,11 +108,11 @@ class DecisionTreeLearner(SupervisedLearner):
                     class_count = len(attribute_value_node.labels[pre_split_labels])
                     print('OUTPUT CLASS NUM', class_count)
 
-                    class_per_attribute = class_count / attribute_value_node.data_n
+                    class_per_attribute = class_count / attribute_value_node.features_n
                     if class_per_attribute != 0:
-                        attribute_value_info_loss += (-1) * (class_count / attribute_value_node.data_n) * math.log(class_count / attribute_value_node.data_n, 2)
+                        attribute_value_info_loss += (-1) * (class_count / attribute_value_node.features_n) * math.log(class_count / attribute_value_node.features_n, 2)
 
-                attribute_value_info_loss *= attribute_value_node.data_n / last_decision_made.data_n
+                attribute_value_info_loss *= attribute_value_node.features_n / last_decision_made.features_n
                 attribute_info_loss += attribute_value_info_loss
 
             possible_next_decisions += [possible_next_decisions_nodes]
@@ -170,4 +174,12 @@ class DecisionTreeLearner(SupervisedLearner):
 
     def sub_lists(self, li1, li2):
         return (list(set(li1) - set(li2)))
+
+    def get_indices_by_boolean(self, list_of_booleans):
+        indices_list = []
+        for i in range(len(list_of_booleans)):
+            if list_of_booleans[i] == True:
+                indices_list += [i]
+
+        return indices_list
 
