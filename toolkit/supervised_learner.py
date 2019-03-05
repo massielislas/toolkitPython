@@ -1,5 +1,5 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
-from .arff import Arff
+from arff import Arff
 import math
 import numpy as np
 import warnings

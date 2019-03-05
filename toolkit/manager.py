@@ -1,8 +1,8 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 
-from .supervised_learner import SupervisedLearner
-from .baseline_learner import BaselineLearner
-from .arff import Arff
+from supervised_learner import SupervisedLearner
+from baseline_learner import BaselineLearner
+from arff import Arff
 import random
 import argparse
 import time
