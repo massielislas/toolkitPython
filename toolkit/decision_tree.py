@@ -35,6 +35,8 @@ class DecisionTreeLearner(SupervisedLearner):
         # self. weights = np.random.random(self.data_shape)
 
     def train(self, features, labels):
+        for i in range(5):
+            print("")
         """
         This function should loop through the data and create/update a ML model until some stopping criteria is reached
         Args:
@@ -42,25 +44,32 @@ class DecisionTreeLearner(SupervisedLearner):
             labels (Arff): 2D array of feature labels (all instances)
         """
         all_decisions = [i for i in range(len(features[0]))]
-        parent_node = TreeNode()
-        parent_node.data = features.data
-        parent_node.set_data(features.data)
+        root_node = TreeNode()
+        root_node.data = features.data
+        root_node.set_data(features.data)
+        root_node.labels = labels.data
         output_classes_num = labels.unique_value_count(0)
 
         print("OUTPUT CLASSES", output_classes_num)
 
-        last_decision_made = parent_node
+        last_decision_made = root_node
 
         for class_num in range(output_classes_num):
             pre_split = labels.data[:, 0] == class_num
             outputs_of_class = labels.data[pre_split]
+
+            # print(pre_split)
+            # print(outputs_of_class)
+
             class_count = len(outputs_of_class)
             last_decision_made.information += ((-1) * class_count / last_decision_made.data_n) * math.log(class_count / last_decision_made.data_n, 2)
 
         print('PARENT INFORMATION', last_decision_made.information)
 
-        decisions_to_make = self.sub_lists(all_decisions, parent_node.decisions_made)
+        decisions_to_make = self.sub_lists(all_decisions, root_node.decisions_made)
 
+        print(all_decisions)
+        print(root_node.decisions_made)
         print("DECISIONS TO MAKE", decisions_to_make)
 
         possible_next_decisions = []
@@ -77,12 +86,24 @@ class DecisionTreeLearner(SupervisedLearner):
             for attribute_value in attribute_values:
                 attribute_value_node = TreeNode()
                 possible_next_decisions_nodes += [attribute_value_node]
+
                 attribute_value_node.add_decision(attribute)
+                print('ATTRIBUTE VALUE NODE DECISIONS', attribute_value_node.decisions_made)
                 attribute_value_node.feature_value_decision = attribute_value
-
-                pre_split = last_decision_made.data[:, attribute] == attribute_value
-                attribute_value_node.data = labels.data[pre_split]
-
+        #
+        #         pre_split = last_decision_made.data[:, attribute] == attribute_value
+        #         attribute_value_node.set_data(last_decision_made.data[pre_split])
+        #         attribute_value_node.labels = last_decision_made.labels[pre_split]
+        #         attribute_info_gain += 0
+        #
+        #         # for output_class in range(output_classes_num):
+        #         #     ou
+        #
+        #         attribute_info_gain *= attribute_value_node.data_n / last_decision_made.data_n
+        #     for node in possible_next_decisions_nodes:
+        #         node.information = attribute_info_gain
+        #
+        #     possible_next_decisions += [possible_next_decisions_nodes]
 
             #     attribute_node.feature_value_decision = attribute_value
             #     attribute_value_count = attribute_column.count(attribute_value)

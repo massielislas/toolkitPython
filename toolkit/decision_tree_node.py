@@ -5,14 +5,23 @@ class TreeNode:
     decisions_made = []
     information = 0
     data_n = 0
-    parentNode = None
+    parent_node = None
     children = []
     feature_decided = None
     feature_value_decision = None
-    feature_value_decision_count = 0
     data = np.zeros((1,1))
+    labels = np.zeros((1,1))
 
     def __init__(self):
+        self.decisions_made = []
+        self.information = 0
+        self.data_n = 0
+        self.parent_node = None
+        self.children = []
+        self.feature_decided = None
+        self.feature_value_decision = None
+        self.data = np.zeros((1,1))
+        self.labels = np.zeros((1,1))
         pass
 
     def add_decision(self, new_decision):
