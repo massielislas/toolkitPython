@@ -74,16 +74,15 @@ class DecisionTreeLearner(SupervisedLearner):
 
         possible_next_decisions = []
 
-
         for attribute in decisions_to_make:
             print("ATTRIBUTE", attribute)
             possible_next_decisions_nodes = []
 
             attribute_values = [i for i in range(features.unique_value_count(attribute))]
-            attribute_info_gain = 0
-            # print('ATTRIBUTE VALUES', attribute_values)
+            attribute_info_loss = 0
 
             for attribute_value in attribute_values:
+                attribute_value_info_loss = 0
                 print('ATTRIBUTE VALUE', attribute_value)
                 attribute_value_node = TreeNode()
                 possible_next_decisions_nodes += [attribute_value_node]
@@ -95,26 +94,24 @@ class DecisionTreeLearner(SupervisedLearner):
                 pre_split = last_decision_made.data[:, attribute] == attribute_value
                 attribute_value_node.set_data(last_decision_made.data[pre_split])
                 attribute_value_node.labels = last_decision_made.labels[pre_split]
-                attribute_info_gain += 0
+                attribute_value_info_loss += 0
 
                 for output_class in range(output_classes_num):
                     pre_split_labels = attribute_value_node.labels[:,0] == output_class
-                    output_class_num= len(attribute_value_node.labels[pre_split_labels])
-                    print('OUTPUT CLASS NUM', output_class_num)
+                    class_count = len(attribute_value_node.labels[pre_split_labels])
+                    print('OUTPUT CLASS NUM', class_count)
 
-                attribute_info_gain *= attribute_value_node.data_n / last_decision_made.data_n
-        #     for node in possible_next_decisions_nodes:
-        #         node.information = attribute_info_gain
-        #
-        #     possible_next_decisions += [possible_next_decisions_nodes]
+                    class_per_attribute = class_count / attribute_value_node.data_n
+                    if class_per_attribute != 0:
+                        attribute_value_info_loss += (-1) * (class_count / attribute_value_node.data_n) * math.log(class_count / attribute_value_node.data_n, 2)
 
-            #     attribute_node.feature_value_decision = attribute_value
-            #     attribute_value_count = attribute_column.count(attribute_value)
-            #     attribute_info_gain += 0
-            #     # add calculted info gain
+                attribute_value_info_loss *= attribute_value_node.data_n / last_decision_made.data_n
+                attribute_info_loss += attribute_value_info_loss
 
-            ## attribute_info_gain = attribute_count
-            # attribute_info_gains += [attribute_info_gain]
+            possible_next_decisions += [possible_next_decisions_nodes]
+            attribute_value_node.information_gain = last_decision_made.information - attribute_info_loss
+            print('ATTRIBUTE INFO LOSS', attribute_info_loss)
+            print('INFO GAIN FOR ATTRIBUTE', attribute_value_node.information_gain)
 
 
         ###########################################

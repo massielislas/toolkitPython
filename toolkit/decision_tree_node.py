@@ -11,6 +11,7 @@ class TreeNode:
     feature_value_decision = None
     data = np.zeros((1,1))
     labels = np.zeros((1,1))
+    inforation_gain = 0
 
     def __init__(self):
         self.decisions_made = []
