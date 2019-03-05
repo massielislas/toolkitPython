@@ -41,36 +41,15 @@ class DecisionTreeLearner(SupervisedLearner):
             features (Arff): 2D array of feature values (all instances)
             labels (Arff): 2D array of feature labels (all instances)
         """
-
-        # print("FEATURES", features)
-        # print("LABELS", labels)
-
-        # pick the first one
-        # all_decisions = [i for i in range(features.cols)]
-        # parent_node = TreeNode()
-        # parent_node.data_n = labels.rows
-        # self.nodes += [parent_node]
-        # output_classes_num = labels.value_count(0)
-        # print("OUTPUT CLASSES", output_classes_num)
-
-
         all_decisions = [i for i in range(len(features[0]))]
         parent_node = TreeNode()
-        parent_node.data_n = labels.instance_count
         parent_node.data = features.data
+        parent_node.set_data(features.data)
         output_classes_num = labels.unique_value_count(0)
 
         print("OUTPUT CLASSES", output_classes_num)
-        class_counts = []
 
         last_decision_made = parent_node
-
-        # # GET INFORMATION FOR (FIRST )NODE
-        # for class_num in range(output_classes_num):
-        #     class_counts += [labels.col(0).count(class_num)]
-        #     class_count = labels.col(0).count(class_num)
-        #     last_decision_made.information += ((-1) * class_count / last_decision_made.data_n) * math.log(class_count / last_decision_made.data_n, 2)
-        #
 
         for class_num in range(output_classes_num):
             pre_split = labels.data[:, 0] == class_num
@@ -84,7 +63,34 @@ class DecisionTreeLearner(SupervisedLearner):
 
         print("DECISIONS TO MAKE", decisions_to_make)
 
-        attribute_info_gains = []
+        possible_next_decisions = []
+
+
+        for attribute in decisions_to_make:
+            print("ATTRIBUTE", attribute)
+            possible_next_decisions_nodes = []
+
+            attribute_values = [i for i in range(features.unique_value_count(attribute))]
+            attribute_info_gain = 0
+            print('ATTRIBUTE VALUES', attribute_values)
+
+            for attribute_value in attribute_values:
+                attribute_value_node = TreeNode()
+                possible_next_decisions_nodes += [attribute_value_node]
+                attribute_value_node.add_decision(attribute)
+                attribute_value_node.feature_value_decision = attribute_value
+
+                pre_split = last_decision_made.data[:, attribute] == attribute_value
+                attribute_value_node.data = labels.data[pre_split]
+
+
+            #     attribute_node.feature_value_decision = attribute_value
+            #     attribute_value_count = attribute_column.count(attribute_value)
+            #     attribute_info_gain += 0
+            #     # add calculted info gain
+
+            ## attribute_info_gain = attribute_count
+            # attribute_info_gains += [attribute_info_gain]
 
 
         ###########################################
@@ -94,10 +100,6 @@ class DecisionTreeLearner(SupervisedLearner):
                 self.average_label += [labels.most_common_value(0)]    # nominal
             else:
                 self.average_label += [labels.column_mean(0)]  # continuous
-
-                class_counts = []
-
-
 
 
     def predict_all(self, features):

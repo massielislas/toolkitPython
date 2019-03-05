@@ -9,7 +9,7 @@ class TreeNode:
     children = []
     feature_decided = None
     feature_value_decision = None
-    count = 0
+    feature_value_decision_count = 0
     data = np.zeros((1,1))
 
     def __init__(self):
@@ -17,3 +17,8 @@ class TreeNode:
 
     def add_decision(self, new_decision):
         self.decisions_made += [new_decision]
+        self.feature_decided = new_decision
+
+    def set_data(self, data):
+        self.data = data
+        self.data_n = len(data)
