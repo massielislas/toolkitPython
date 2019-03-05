@@ -81,25 +81,28 @@ class DecisionTreeLearner(SupervisedLearner):
 
             attribute_values = [i for i in range(features.unique_value_count(attribute))]
             attribute_info_gain = 0
-            print('ATTRIBUTE VALUES', attribute_values)
+            # print('ATTRIBUTE VALUES', attribute_values)
 
             for attribute_value in attribute_values:
+                print('ATTRIBUTE VALUE', attribute_value)
                 attribute_value_node = TreeNode()
                 possible_next_decisions_nodes += [attribute_value_node]
 
                 attribute_value_node.add_decision(attribute)
-                print('ATTRIBUTE VALUE NODE DECISIONS', attribute_value_node.decisions_made)
+                # print('ATTRIBUTE VALUE NODE DECISIONS', attribute_value_node.decisions_made)
                 attribute_value_node.feature_value_decision = attribute_value
-        #
-        #         pre_split = last_decision_made.data[:, attribute] == attribute_value
-        #         attribute_value_node.set_data(last_decision_made.data[pre_split])
-        #         attribute_value_node.labels = last_decision_made.labels[pre_split]
-        #         attribute_info_gain += 0
-        #
-        #         # for output_class in range(output_classes_num):
-        #         #     ou
-        #
-        #         attribute_info_gain *= attribute_value_node.data_n / last_decision_made.data_n
+
+                pre_split = last_decision_made.data[:, attribute] == attribute_value
+                attribute_value_node.set_data(last_decision_made.data[pre_split])
+                attribute_value_node.labels = last_decision_made.labels[pre_split]
+                attribute_info_gain += 0
+
+                for output_class in range(output_classes_num):
+                    pre_split_labels = attribute_value_node.labels[:,0] == output_class
+                    output_class_num= len(attribute_value_node.labels[pre_split_labels])
+                    print('OUTPUT CLASS NUM', output_class_num)
+
+                attribute_info_gain *= attribute_value_node.data_n / last_decision_made.data_n
         #     for node in possible_next_decisions_nodes:
         #         node.information = attribute_info_gain
         #
