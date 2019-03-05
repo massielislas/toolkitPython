@@ -17,6 +17,8 @@ class DecisionTreeLearner(SupervisedLearner):
     it's time to find a new learning model.
     """
 
+    all_decisions = []
+
     def __init__(self, data=None, example_hyperparameter=None):
         """ Example learner initialization. Any additional variables passed to the Session will be passed on to the learner,
             e.g. learning rate, etc.
@@ -43,7 +45,7 @@ class DecisionTreeLearner(SupervisedLearner):
             features (Arff): 2D array of feature values (all instances)
             labels (Arff): 2D array of feature labels (all instances)
         """
-        all_decisions = [i for i in range(len(features[0]))]
+        self.all_decisions = [i for i in range(len(features[0]))]
         root_node = TreeNode()
         root_node.data = features.data
         root_node.set_data(features.data)
@@ -66,9 +68,9 @@ class DecisionTreeLearner(SupervisedLearner):
 
         print('PARENT INFORMATION', last_decision_made.information)
 
-        decisions_to_make = self.sub_lists(all_decisions, root_node.decisions_made)
+        decisions_to_make = self.sub_lists(self.all_decisions, root_node.decisions_made)
 
-        print(all_decisions)
+        print(self.all_decisions)
         print(root_node.decisions_made)
         print("DECISIONS TO MAKE", decisions_to_make)
 
@@ -128,6 +130,27 @@ class DecisionTreeLearner(SupervisedLearner):
                 self.average_label += [labels.most_common_value(0)]    # nominal
             else:
                 self.average_label += [labels.column_mean(0)]  # continuous
+
+
+    def build_tree_recursive(self, node):
+        """
+        :type node: TreeNode
+        """
+        decisions_to_make = self.sub_lists(self.all_decisions, node.decisions_made)
+
+        if len(decisions_to_make) == 0:
+            # unique values will be a list
+            unique_values = self.unique(node.labels)
+            if len(unique_values) == 0:
+                node.classification_label = unique_values[0]
+                return
+            else:
+                print("SOMETHING WENT WRONG")
+
+        else:
+            # run recursive clause
+            for node in node.children:
+                self.build_tree_recursive(node)
 
 
     def predict_all(self, features):
