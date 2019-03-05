@@ -73,6 +73,7 @@ class DecisionTreeLearner(SupervisedLearner):
         print("DECISIONS TO MAKE", decisions_to_make)
 
         possible_next_decisions = []
+        information_gains = []
 
         for attribute in decisions_to_make:
             print("ATTRIBUTE", attribute)
@@ -85,10 +86,10 @@ class DecisionTreeLearner(SupervisedLearner):
                 attribute_value_info_loss = 0
                 print('ATTRIBUTE VALUE', attribute_value)
                 attribute_value_node = TreeNode()
+                attribute_value_node.parentNode = root_node
                 possible_next_decisions_nodes += [attribute_value_node]
 
                 attribute_value_node.add_decision(attribute)
-                # print('ATTRIBUTE VALUE NODE DECISIONS', attribute_value_node.decisions_made)
                 attribute_value_node.feature_value_decision = attribute_value
 
                 pre_split = last_decision_made.data[:, attribute] == attribute_value
@@ -110,8 +111,14 @@ class DecisionTreeLearner(SupervisedLearner):
 
             possible_next_decisions += [possible_next_decisions_nodes]
             attribute_value_node.information_gain = last_decision_made.information - attribute_info_loss
+            information_gains += [attribute_value_node.information_gain]
+
             print('ATTRIBUTE INFO LOSS', attribute_info_loss)
             print('INFO GAIN FOR ATTRIBUTE', attribute_value_node.information_gain)
+
+        best_attribute = np.argmax(information_gains)
+        last_decision_made.children = possible_next_decisions[best_attribute]
+        print('BEST ATTRIBUTE', best_attribute)
 
 
         ###########################################
