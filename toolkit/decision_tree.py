@@ -54,78 +54,28 @@ class DecisionTreeLearner(SupervisedLearner):
 
         print("OUTPUT CLASSES", self.output_classes_num)
 
-        last_decision_made = root_node
+        # last_decision_made = root_node
+        #
+        # for class_num in range(self.output_classes_num):
+        #     pre_split = labels.data[:, 0] == class_num
+        #
+        #     class_count = len(labels.data[pre_split])
+        #     last_decision_made.information += ((-1) * class_count / last_decision_made.features_n) * math.log(class_count / last_decision_made.features_n, 2)
 
-        for class_num in range(self.output_classes_num):
-            pre_split = labels.data[:, 0] == class_num
-
-            class_count = len(labels.data[pre_split])
-            last_decision_made.information += ((-1) * class_count / last_decision_made.features_n) * math.log(class_count / last_decision_made.features_n, 2)
-
-        print('PARENT INFORMATION', last_decision_made.information)
+        self.compute_node_information(node=root_node)
+        print('PARENT INFORMATION', root_node.information)
 
         self.compute_children_of_node(root_node)
 
-        # decisions_to_make = self.sub_lists(self.all_decisions, root_node.decisions_made)
-        #
-        # print(self.all_decisions)
-        # print(root_node.decisions_made)
-        # print("DECISIONS TO MAKE", decisions_to_make)
-        #
-        # possible_next_decisions = []
-        # information_gains = []
-        #
-        # for attribute in decisions_to_make:
-        #     print("ATTRIBUTE", attribute)
-        #     possible_next_decisions_nodes = []
-        #
-        #     attribute_values = [i for i in range(features.unique_value_count(attribute))]
-        #     attribute_info_loss = 0
-        #
-        #     for attribute_value in attribute_values:
-        #         attribute_value_info_loss = 0
-        #         print('ATTRIBUTE VALUE', attribute_value)
-        #         attribute_value_node = TreeNode()
-        #         attribute_value_node.parentNode = root_node
-        #         possible_next_decisions_nodes += [attribute_value_node]
-        #
-        #         attribute_value_node.add_decision(attribute)
-        #         attribute_value_node.feature_value_decision = attribute_value
-        #
-        #         pre_split = last_decision_made.features.data[:, attribute] == attribute_value
-        #         rows_to_keep = self.get_indices_by_boolean(pre_split)
-        #         # print(last_decision_made.features.data)
-        #         columns_to_keep = slice(last_decision_made.features.data[0].size)
-        #         # print(rows_to_keep)
-        #         # print(columns_to_keep)
-        #         new_features = last_decision_made.features.create_subset_arff(rows_to_keep, columns_to_keep, 0)
-        #         attribute_value_node.set_features(new_features)
-        #         attribute_value_node.labels = last_decision_made.labels[pre_split]
-        #         attribute_value_info_loss += 0
-        #
-        #         for output_class in range(output_classes_num):
-        #             pre_split_labels = attribute_value_node.labels[:,0] == output_class
-        #             class_count = len(attribute_value_node.labels[pre_split_labels])
-        #             print('OUTPUT CLASS NUM', class_count)
-        #
-        #             class_per_attribute = class_count / attribute_value_node.features_n
-        #             if class_per_attribute != 0:
-        #                 attribute_value_info_loss += (-1) * (class_count / attribute_value_node.features_n) * math.log(class_count / attribute_value_node.features_n, 2)
-        #
-        #         attribute_value_info_loss *= attribute_value_node.features_n / last_decision_made.features_n
-        #         attribute_info_loss += attribute_value_info_loss
-        #
-        #     possible_next_decisions += [possible_next_decisions_nodes]
-        #     attribute_value_node.information_gain = last_decision_made.information - attribute_info_loss
-        #     information_gains += [attribute_value_node.information_gain]
-        #
-        #     print('ATTRIBUTE INFO LOSS', attribute_info_loss)
-        #     print('INFO GAIN FOR ATTRIBUTE', attribute_value_node.information_gain)
-        #
-        # best_attribute = np.argmax(information_gains)
-        # last_decision_made.children = possible_next_decisions[best_attribute]
-        # print('BEST ATTRIBUTE', best_attribute)
+        for child in root_node.children:
+            print('FEATURE DECIDED', child.feature_decided)
+            print('FEATURE DECISION', child.feature_value_decision)
+            print()
 
+        # self.compute_children_of_node(root_node.children[0])
+
+        # for child in root_node.children:
+        #     self.build_tree_recursive(child)
 
         ###########################################
         self.average_label = []
@@ -137,11 +87,26 @@ class DecisionTreeLearner(SupervisedLearner):
 
 
 
+    def compute_node_information(self, node):
+        """
+        :type node: TreeNode
+        """
+        for class_num in range(self.output_classes_num):
+            pre_split = node.labels.data[:, 0] == class_num
+
+            class_count = len(node.labels.data[pre_split])
+
+            node.information += ((-1) * class_count / node.features_n) * math.log(class_count / node.features_n, 2)
+
+
     def compute_children_of_node(self, parent_node):
+        """
+        :type parent_node: TreeNode
+        """
         decisions_to_make = self.sub_lists(self.all_decisions, parent_node.decisions_made)
 
-        print(self.all_decisions)
-        print(parent_node.decisions_made)
+        print("DECISIONS MADE", parent_node.decisions_made)
+        print("LAST DECISION", parent_node.feature_value_decision)
         print("DECISIONS TO MAKE", decisions_to_make)
 
         possible_next_decisions = []
@@ -159,7 +124,6 @@ class DecisionTreeLearner(SupervisedLearner):
                 print('ATTRIBUTE VALUE', attribute_value)
                 attribute_value_node = TreeNode()
                 attribute_value_node.parentNode = parent_node
-                possible_next_decisions_nodes += [attribute_value_node]
 
                 attribute_value_node.add_decision(attribute)
                 attribute_value_node.feature_value_decision = attribute_value
@@ -172,15 +136,17 @@ class DecisionTreeLearner(SupervisedLearner):
                 attribute_value_node.labels = parent_node.labels[pre_split]
                 attribute_value_info_loss += 0
 
-                for output_class in range(self.output_classes_num):
-                    pre_split_labels = attribute_value_node.labels[:,0] == output_class
-                    class_count = len(attribute_value_node.labels[pre_split_labels])
-                    # print('OUTPUT CLASS NUM', class_count)
-                    # print('TOTAL IN ATTRIBUTE', attribute_value_node.features_n)
-                    class_per_attribute = class_count / attribute_value_node.features_n
-                    # print(class_per_attribute)
-                    if class_per_attribute != 0:
-                        attribute_value_info_loss += (-1) * (class_count / attribute_value_node.features_n) * math.log(class_count / attribute_value_node.features_n, 2)
+                if attribute_value_node.features_n > 0:
+                    possible_next_decisions_nodes += [attribute_value_node]
+                    for output_class in range(self.output_classes_num):
+                        pre_split_labels = attribute_value_node.labels[:, 0] == output_class
+                        class_count = len(attribute_value_node.labels[pre_split_labels])
+                        # print('OUTPUT CLASS NUM', class_count)
+                        # print('TOTAL IN ATTRIBUTE', attribute_value_node.features_n)
+                        class_per_attribute = class_count / attribute_value_node.features_n
+                        # print(class_per_attribute)
+                        if class_per_attribute != 0:
+                            attribute_value_info_loss += (-1) * (class_count / attribute_value_node.features_n) * math.log(class_count / attribute_value_node.features_n, 2)
 
                 attribute_value_info_loss *= attribute_value_node.features_n / parent_node.features_n
                 attribute_info_loss += attribute_value_info_loss
@@ -200,6 +166,7 @@ class DecisionTreeLearner(SupervisedLearner):
         """
         :type node: TreeNode
         """
+
         decisions_to_make = self.sub_lists(self.all_decisions, node.decisions_made)
 
         if len(decisions_to_make) == 0:
@@ -212,11 +179,7 @@ class DecisionTreeLearner(SupervisedLearner):
                 print("SOMETHING WENT WRONG")
 
         else:
-            # run recursive clause
-
-            # end of recursive code
-
-            # call recursive code on all the children
+            self.compute_children_of_node(node)
             for node in node.children:
                 self.build_tree_recursive(node)
 
