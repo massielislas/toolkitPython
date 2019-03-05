@@ -57,6 +57,7 @@ class DecisionTreeLearner(SupervisedLearner):
         all_decisions = [i for i in range(len(features[0]))]
         parent_node = TreeNode()
         parent_node.data_n = labels.instance_count
+        parent_node.data = features.data
         output_classes_num = labels.unique_value_count(0)
 
         print("OUTPUT CLASSES", output_classes_num)
@@ -78,6 +79,12 @@ class DecisionTreeLearner(SupervisedLearner):
             last_decision_made.information += ((-1) * class_count / last_decision_made.data_n) * math.log(class_count / last_decision_made.data_n, 2)
 
         print('PARENT INFORMATION', last_decision_made.information)
+
+        decisions_to_make = self.sub_lists(all_decisions, parent_node.decisions_made)
+
+        print("DECISIONS TO MAKE", decisions_to_make)
+
+        attribute_info_gains = []
 
 
         ###########################################
@@ -106,4 +113,8 @@ class DecisionTreeLearner(SupervisedLearner):
     def unique(self, list_x):
         set_x = set(list_x)
         return list(set_x)
+
+
+    def sub_lists(self, li1, li2):
+        return (list(set(li1) - set(li2)))
 

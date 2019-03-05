@@ -1,3 +1,5 @@
+import numpy as np
+
 class TreeNode:
 
     decisions_made = []
@@ -8,6 +10,7 @@ class TreeNode:
     feature_decided = None
     feature_value_decision = None
     count = 0
+    data = np.zeros((1,1))
 
     def __init__(self):
         pass
