@@ -3,7 +3,6 @@ from supervised_learner import SupervisedLearner
 from arff import Arff
 from decision_tree_node import TreeNode
 
-import pandas as pd
 
 import numpy as np
 import math
@@ -19,6 +18,7 @@ class DecisionTreeLearner(SupervisedLearner):
 
     all_decisions = []
     output_classes_num = 0
+    root_node = None
 
     def __init__(self, data=None, example_hyperparameter=None):
         """ Example learner initialization. Any additional variables passed to the Session will be passed on to the learner,
@@ -47,9 +47,9 @@ class DecisionTreeLearner(SupervisedLearner):
             labels (Arff): 2D array of feature labels (all instances)
         """
         self.all_decisions = [i for i in range(len(features[0]))]
-        root_node = TreeNode()
-        root_node.set_features(features)
-        root_node.labels = labels
+        self.root_node = TreeNode()
+        self.root_node.set_features(features)
+        self.root_node.labels = labels
         self.output_classes_num = labels.unique_value_count(0)
 
         print("OUTPUT CLASSES", self.output_classes_num)
@@ -62,26 +62,44 @@ class DecisionTreeLearner(SupervisedLearner):
         #     class_count = len(labels.data[pre_split])
         #     last_decision_made.information += ((-1) * class_count / last_decision_made.features_n) * math.log(class_count / last_decision_made.features_n, 2)
 
-        self.compute_node_information(node=root_node)
-        print('PARENT INFORMATION', root_node.information)
+        self.compute_node_information(node=self.root_node)
+        print('PARENT INFORMATION', self.root_node.information)
 
-        self.compute_children_of_node(root_node)
+        self.compute_children_of_node(self.root_node)
 
-        for child in root_node.children:
+        for child in self.root_node.children:
             print('FEATURE DECIDED', child.feature_decided)
             print('FEATURE DECISION', child.feature_value_decision)
             print()
 
-        # self.compute_children_of_node(root_node.children[0])
+        self.compute_children_of_node(self.root_node.children[0])
 
-        # for child in root_node.children:
-        #     self.build_tree_recursive(child)
+        for child in self.root_node.children:
+            self.build_tree_recursive(child)
 
-        child_node = root_node.children[0]
-        self.compute_node_information(child_node)
-        print("CHILD INFORMATION", child_node.information)
+        # child_node = root_node.children[0]
+        # self.compute_node_information(child_node)
+        # print("CHILD INFORMATION", child_node.information)
+        #
+        # self.compute_children_of_node(child_node)
+        #
+        # print('CHILDREN DECISIONS MADE', child_node.decisions_made)
+        #
+        #
+        # print('GRANDCHILD!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        # grandchild_node = child_node.children[0]
+        # print(grandchild_node)
+        # self.compute_node_information(grandchild_node)
+        # self.compute_children_of_node(grandchild_node)
+        #
+        #
+        # print('GRANDCHILD INFORMATION', grandchild_node.information)
+        # print('GRANDCHILD DECISIONS MADE', grandchild_node.decisions_made)
+        #
+        # grandgrandchild_node = grandchild_node.children[0]
+        # print('GRAND GRANDCHILD INFORMATION', grandgrandchild_node.information)
+        # print('GRAND GRANDCHILD DECISIONS MADE', grandgrandchild_node.decisions_made)
 
-        self.compute_children_of_node(child_node)
 
         ###########################################
         self.average_label = []
@@ -90,7 +108,6 @@ class DecisionTreeLearner(SupervisedLearner):
                 self.average_label += [labels.most_common_value(0)]    # nominal
             else:
                 self.average_label += [labels.column_mean(0)]  # continuous
-
 
 
     def compute_node_information(self, node):
@@ -106,7 +123,7 @@ class DecisionTreeLearner(SupervisedLearner):
             print("class per attribute, in calculating node info", class_per_attribute)
             if class_per_attribute != 0:
                 node.information += ((-1) * class_per_attribute) * math.log(class_per_attribute, 2)
-        print('NODE INFORMATION', node.information)
+        # print('NODE INFORMATION', node.information)
 
 
     def compute_children_of_node(self, parent_node):
@@ -115,9 +132,9 @@ class DecisionTreeLearner(SupervisedLearner):
         """
         decisions_to_make = self.sub_lists(self.all_decisions, parent_node.decisions_made)
 
-        print("DECISIONS MADE", parent_node.decisions_made)
-        print("LAST DECISION", parent_node.feature_value_decision)
-        print("DECISIONS TO MAKE", decisions_to_make)
+        # print("DECISIONS MADE", parent_node.decisions_made)
+        # print("LAST DECISION", parent_node.feature_value_decision)
+        # print("DECISIONS TO MAKE", decisions_to_make)
 
         possible_next_decisions = []
         information_gains = []
@@ -133,10 +150,11 @@ class DecisionTreeLearner(SupervisedLearner):
                 attribute_value_info_loss = 0
                 print('ATTRIBUTE VALUE', attribute_value)
                 attribute_value_node = TreeNode()
-                attribute_value_node.parentNode = parent_node
+                attribute_value_node.parent_node = parent_node
 
                 attribute_value_node.add_decision(attribute)
                 attribute_value_node.feature_value_decision = attribute_value
+                # print('ATTRIBUTE VALUE NODE DECISIONS MADE', attribute_value_node.decisions_made)
 
                 pre_split = parent_node.features.data[:, attribute] == attribute_value
                 rows_to_keep = self.get_indices_by_boolean(pre_split)
@@ -157,7 +175,7 @@ class DecisionTreeLearner(SupervisedLearner):
                         # print('TOTAL IN ATTRIBUTE', attribute_value_node.features_n)
                         class_per_attribute = class_count / attribute_value_node.features_n
                         # print(class_per_attribute)
-                        print("CLASS COUNT", class_count)
+                        # print("CLASS COUNT", class_count)
                         if class_per_attribute != 0:
                             attribute_value_info_loss += (-1) * (class_count / attribute_value_node.features_n) * math.log(class_count / attribute_value_node.features_n, 2)
 
@@ -168,14 +186,14 @@ class DecisionTreeLearner(SupervisedLearner):
             attribute_value_node.information_gain = parent_node.information - attribute_info_loss
             information_gains += [attribute_value_node.information_gain]
 
-            print('ATTRIBUTE INFO LOSS', attribute_info_loss)
-            print('INFO GAIN FOR ATTRIBUTE', attribute_value_node.information_gain)
+            # print('ATTRIBUTE INFO LOSS', attribute_info_loss)
+            # print('INFO GAIN FOR ATTRIBUTE', attribute_value_node.information_gain)
 
-        print("INFORMATION GAINS", information_gains)
+        # print("INFORMATION GAINS", information_gains)
         best_attribute = np.argmax(information_gains)
-        print("BEST ATTRIBUTE POSITION", best_attribute)
+        # print("BEST ATTRIBUTE POSITION", best_attribute)
         parent_node.children = possible_next_decisions[best_attribute]
-        print('BEST ATTRIBUTE', possible_next_decisions[best_attribute][0].feature_decided)
+        # print('BEST ATTRIBUTE', possible_next_decisions[best_attribute][0].feature_decided)
 
 
     def build_tree_recursive(self, node):
@@ -187,14 +205,24 @@ class DecisionTreeLearner(SupervisedLearner):
 
         if len(decisions_to_make) == 0:
             # unique values will be a list
-            unique_values = self.unique(node.labels)
-            if len(unique_values) == 0:
+            unique_values = self.unique(node.labels.data)
+            if len(unique_values) == 1:
                 node.classification_label = unique_values[0]
                 return
             else:
                 print("SOMETHING WENT WRONG")
 
+        if node.information == node.parent_node.information:
+            unique_values = self.unique(node.labels.data)
+            if len(unique_values) == 1:
+                node.classification_label = unique_values[0]
+                return
+            else:
+                print("SOMETHING WENT WRONG")
+
+
         else:
+            self.compute_node_information(node)
             self.compute_children_of_node(node)
             for node in node.children:
                 self.build_tree_recursive(node)
@@ -211,8 +239,15 @@ class DecisionTreeLearner(SupervisedLearner):
         return pred.reshape(-1,1) # reshape this so it is the correct shape = instances, # of output classes
 
     def unique(self, list_x):
-        set_x = set(list_x)
-        return list(set_x)
+        if type(list_x) is list:
+            set_x = set(list_x)
+            return list(set_x)
+
+        elif type(list_x) is np.ndarray:
+            return np.unique(list_x)
+
+        else:
+            print('YOU NEED TO IMPLEMENT ANOTHER TYPE')
 
 
     def sub_lists(self, li1, li2):
@@ -225,4 +260,5 @@ class DecisionTreeLearner(SupervisedLearner):
                 indices_list += [i]
 
         return indices_list
+
 
