@@ -102,6 +102,7 @@ class DecisionTreeLearner(SupervisedLearner):
 
 
         ###########################################
+        ###########################################
 
         print()
         self.visualize_tree(self.root_node)
@@ -210,15 +211,17 @@ class DecisionTreeLearner(SupervisedLearner):
             # unique values will be a list
             unique_values = self.unique(node.labels.data)
             if len(unique_values) == 1:
-                node.classification_label = unique_values[0]
+                node.set_classification_label(unique_values[0])
+                print('CLASSIFICATION LABEL', node.classification_label)
                 return
             else:
                 print("SOMETHING WENT WRONG")
 
-        if node.information == node.parent_node.information:
+        elif node.information == node.parent_node.information:
             unique_values = self.unique(node.labels.data)
             if len(unique_values) == 1:
-                node.classification_label = unique_values[0]
+                node.set_classification_label(unique_values[0])
+                print('CLASSIFICATION LABEL', node.classification_label)
                 return
             else:
                 print("SOMETHING WENT WRONG")
@@ -270,6 +273,8 @@ class DecisionTreeLearner(SupervisedLearner):
         :type node: TreeNode
         """
         if len(node.children) == 0:
+            print()
+            node.to_string()
             return
 
         else:

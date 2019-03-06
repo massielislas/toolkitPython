@@ -12,6 +12,7 @@ class TreeNode:
     features = None
     labels = None
     information_gain = 0
+    classification_label = None
 
 
     def __init__(self):
@@ -45,6 +46,8 @@ class TreeNode:
 
         print('INFORMATION', self.information)
         print('INFORMATION GAIN', self.information_gain)
+        # if self.classification_label is not None:
+        print("!!! CLASSIFICATION LABEL", self.classification_label)
 
     def add_decision(self, new_decision):
         if self.parent_node is not None:
@@ -61,3 +64,10 @@ class TreeNode:
     def set_features(self, features):
         self.features = features
         self.features_n = len(features.data)
+
+    def set_classification_label(self, label):
+        # print()
+        self.classification_label = label
+        # print('SETTING CLASSIFICATION LABEL')
+        # self.to_string()
+
