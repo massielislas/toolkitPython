@@ -102,6 +102,9 @@ class DecisionTreeLearner(SupervisedLearner):
 
 
         ###########################################
+
+        print()
+        self.visualize_tree(self.root_node)
         self.average_label = []
         for i in range(labels.shape[1]): # for each label column
             if labels.is_nominal(i): # assumes 1D label
@@ -224,8 +227,8 @@ class DecisionTreeLearner(SupervisedLearner):
         else:
             self.compute_node_information(node)
             self.compute_children_of_node(node)
-            for node in node.children:
-                self.build_tree_recursive(node)
+            for child in node.children:
+                self.build_tree_recursive(child)
 
 
     def predict_all(self, features):
@@ -260,5 +263,19 @@ class DecisionTreeLearner(SupervisedLearner):
                 indices_list += [i]
 
         return indices_list
+
+
+    def visualize_tree(self, node):
+        """
+        :type node: TreeNode
+        """
+        if len(node.children) == 0:
+            return
+
+        else:
+            node.to_string()
+            print()
+            for child in node.children:
+                self.visualize_tree(child)
 
 

@@ -31,11 +31,17 @@ class TreeNode:
         print('FEATURE VALUE DECISION', self.feature_value_decision)
         print('DECISIONS MADE', self.decisions_made)
 
-        print('LABELS')
-        print(self.labels)
+        # print('LABELS')
+        # print(self.labels)
+        #
+        # print('FEATURES')
+        # print(self.labels)
 
-        print('FEATURES')
-        print(self.labels)
+        if self.parent_node is not None:
+            print('PARENT', self.parent_node.feature_decided, "-", self.parent_node.feature_value_decision)
+
+        else:
+            print('NO PARENT NODE. ROOT NODE?')
 
         print('INFORMATION', self.information)
         print('INFORMATION GAIN', self.information_gain)
