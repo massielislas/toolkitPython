@@ -77,6 +77,9 @@ class DecisionTreeLearner(SupervisedLearner):
         # for child in root_node.children:
         #     self.build_tree_recursive(child)
 
+        # self.compute_node_information(root_node.children[0])
+        # print("CHILD INFORMATION", root_node.children[0].information)
+
         ###########################################
         self.average_label = []
         for i in range(labels.shape[1]): # for each label column
@@ -92,6 +95,7 @@ class DecisionTreeLearner(SupervisedLearner):
         :type node: TreeNode
         """
         for class_num in range(self.output_classes_num):
+            # print("HEY LABELS", node.labels)
             pre_split = node.labels.data[:, 0] == class_num
 
             class_count = len(node.labels.data[pre_split])
@@ -133,7 +137,9 @@ class DecisionTreeLearner(SupervisedLearner):
                 columns_to_keep = slice(parent_node.features.data[0].size)
                 new_features = parent_node.features.create_subset_arff(rows_to_keep, columns_to_keep, 0)
                 attribute_value_node.set_features(new_features)
-                attribute_value_node.labels = parent_node.labels[pre_split]
+                columns_to_keep = slice(parent_node.labels.data[0].size)
+                new_labels = parent_node.labels.create_subset_arff(rows_to_keep, columns_to_keep, 0)
+                attribute_value_node.labels = new_labels
                 attribute_value_info_loss += 0
 
                 if attribute_value_node.features_n > 0:
