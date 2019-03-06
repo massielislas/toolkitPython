@@ -187,8 +187,17 @@ class DecisionTreeLearner(SupervisedLearner):
                 attribute_info_loss += attribute_value_info_loss
 
             possible_next_decisions += [possible_next_decisions_nodes]
-            attribute_value_node.information_gain = parent_node.information - attribute_info_loss
-            information_gains += [attribute_value_node.information_gain]
+            print('attribute info loss', attribute_info_loss)
+            print('parent information', parent_node.information)
+            attribute_information_gain = parent_node.information - attribute_info_loss
+
+            for child_node_created in possible_next_decisions_nodes:
+                child_node_created.information_gain = attribute_information_gain
+            # THIS WILL ONLY SET THE INFORMATION GAIN FOR ONE OF THE NODES AT THE LEVEL
+            # more specifically, the last one processed
+            # CHANGE IT. MAYBE NECESSARY TO ITERATE?
+            information_gains += [attribute_information_gain]
+
 
             # print('ATTRIBUTE INFO LOSS', attribute_info_loss)
             # print('INFO GAIN FOR ATTRIBUTE', attribute_value_node.information_gain)
@@ -206,6 +215,8 @@ class DecisionTreeLearner(SupervisedLearner):
         """
 
         decisions_to_make = self.sub_lists(self.all_decisions, node.decisions_made)
+        unique_values = self.unique(node.labels.data)
+
 
         if len(decisions_to_make) == 0:
             # unique values will be a list
@@ -217,14 +228,21 @@ class DecisionTreeLearner(SupervisedLearner):
             else:
                 print("SOMETHING WENT WRONG")
 
-        elif node.information == node.parent_node.information:
-            unique_values = self.unique(node.labels.data)
-            if len(unique_values) == 1:
-                node.set_classification_label(unique_values[0])
-                print('CLASSIFICATION LABEL', node.classification_label)
-                return
-            else:
-                print("SOMETHING WENT WRONG")
+        elif len(unique_values) == 1:
+            node.set_classification_label(unique_values[0])
+            print('CLASSIFICATION LABEL', node.classification_label)
+            print('EVERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR')
+            return
+
+        # elif node.information_gain == node.parent_node.information:
+        #     print('EVERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR')
+        #     unique_values = self.unique(node.labels.data)
+        #     if len(unique_values) == 1:
+        #         node.set_classification_label(unique_values[0])
+        #         print('CLASSIFICATION LABEL', node.classification_label)
+        #         return
+        #     else:
+        #         print("SOMETHING WENT WRONG")
 
 
         else:
@@ -273,8 +291,8 @@ class DecisionTreeLearner(SupervisedLearner):
         :type node: TreeNode
         """
         if len(node.children) == 0:
-            print()
             node.to_string()
+            print()
             return
 
         else:
