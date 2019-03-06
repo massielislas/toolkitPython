@@ -77,8 +77,11 @@ class DecisionTreeLearner(SupervisedLearner):
         # for child in root_node.children:
         #     self.build_tree_recursive(child)
 
-        # self.compute_node_information(root_node.children[0])
-        # print("CHILD INFORMATION", root_node.children[0].information)
+        child_node = root_node.children[0]
+        self.compute_node_information(child_node)
+        print("CHILD INFORMATION", child_node.information)
+
+        self.compute_children_of_node(child_node)
 
         ###########################################
         self.average_label = []
@@ -99,8 +102,11 @@ class DecisionTreeLearner(SupervisedLearner):
             pre_split = node.labels.data[:, 0] == class_num
 
             class_count = len(node.labels.data[pre_split])
-
-            node.information += ((-1) * class_count / node.features_n) * math.log(class_count / node.features_n, 2)
+            class_per_attribute = class_count / node.features_n
+            print("class per attribute, in calculating node info", class_per_attribute)
+            if class_per_attribute != 0:
+                node.information += ((-1) * class_per_attribute) * math.log(class_per_attribute, 2)
+        print('NODE INFORMATION', node.information)
 
 
     def compute_children_of_node(self, parent_node):
@@ -151,6 +157,7 @@ class DecisionTreeLearner(SupervisedLearner):
                         # print('TOTAL IN ATTRIBUTE', attribute_value_node.features_n)
                         class_per_attribute = class_count / attribute_value_node.features_n
                         # print(class_per_attribute)
+                        print("CLASS COUNT", class_count)
                         if class_per_attribute != 0:
                             attribute_value_info_loss += (-1) * (class_count / attribute_value_node.features_n) * math.log(class_count / attribute_value_node.features_n, 2)
 
@@ -164,9 +171,12 @@ class DecisionTreeLearner(SupervisedLearner):
             print('ATTRIBUTE INFO LOSS', attribute_info_loss)
             print('INFO GAIN FOR ATTRIBUTE', attribute_value_node.information_gain)
 
+        print("INFORMATION GAINS", information_gains)
         best_attribute = np.argmax(information_gains)
+        print("BEST ATTRIBUTE POSITION", best_attribute)
         parent_node.children = possible_next_decisions[best_attribute]
-        print('BEST ATTRIBUTE', best_attribute)
+        print('BEST ATTRIBUTE', possible_next_decisions[best_attribute][0].feature_decided)
+
 
     def build_tree_recursive(self, node):
         """
