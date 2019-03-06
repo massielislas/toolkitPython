@@ -54,14 +54,6 @@ class DecisionTreeLearner(SupervisedLearner):
 
         print("OUTPUT CLASSES", self.output_classes_num)
 
-        # last_decision_made = root_node
-        #
-        # for class_num in range(self.output_classes_num):
-        #     pre_split = labels.data[:, 0] == class_num
-        #
-        #     class_count = len(labels.data[pre_split])
-        #     last_decision_made.information += ((-1) * class_count / last_decision_made.features_n) * math.log(class_count / last_decision_made.features_n, 2)
-
         self.compute_node_information(node=self.root_node)
         print('PARENT INFORMATION', self.root_node.information)
 
@@ -76,33 +68,6 @@ class DecisionTreeLearner(SupervisedLearner):
 
         for child in self.root_node.children:
             self.build_tree_recursive(child)
-
-        # child_node = root_node.children[0]
-        # self.compute_node_information(child_node)
-        # print("CHILD INFORMATION", child_node.information)
-        #
-        # self.compute_children_of_node(child_node)
-        #
-        # print('CHILDREN DECISIONS MADE', child_node.decisions_made)
-        #
-        #
-        # print('GRANDCHILD!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        # grandchild_node = child_node.children[0]
-        # print(grandchild_node)
-        # self.compute_node_information(grandchild_node)
-        # self.compute_children_of_node(grandchild_node)
-        #
-        #
-        # print('GRANDCHILD INFORMATION', grandchild_node.information)
-        # print('GRANDCHILD DECISIONS MADE', grandchild_node.decisions_made)
-        #
-        # grandgrandchild_node = grandchild_node.children[0]
-        # print('GRAND GRANDCHILD INFORMATION', grandgrandchild_node.information)
-        # print('GRAND GRANDCHILD DECISIONS MADE', grandgrandchild_node.decisions_made)
-
-
-        ###########################################
-        ###########################################
 
         print()
         self.visualize_tree(self.root_node)
@@ -193,12 +158,8 @@ class DecisionTreeLearner(SupervisedLearner):
 
             for child_node_created in possible_next_decisions_nodes:
                 child_node_created.information_gain = attribute_information_gain
-            # THIS WILL ONLY SET THE INFORMATION GAIN FOR ONE OF THE NODES AT THE LEVEL
-            # more specifically, the last one processed
-            # CHANGE IT. MAYBE NECESSARY TO ITERATE?
+
             information_gains += [attribute_information_gain]
-
-
             # print('ATTRIBUTE INFO LOSS', attribute_info_loss)
             # print('INFO GAIN FOR ATTRIBUTE', attribute_value_node.information_gain)
 
@@ -230,19 +191,9 @@ class DecisionTreeLearner(SupervisedLearner):
 
         elif len(unique_values) == 1:
             node.set_classification_label(unique_values[0])
-            print('CLASSIFICATION LABEL', node.classification_label)
-            print('EVERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR')
+            # print('CLASSIFICATION LABEL', node.classification_label)
+            # print('EVERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR')
             return
-
-        # elif node.information_gain == node.parent_node.information:
-        #     print('EVERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR')
-        #     unique_values = self.unique(node.labels.data)
-        #     if len(unique_values) == 1:
-        #         node.set_classification_label(unique_values[0])
-        #         print('CLASSIFICATION LABEL', node.classification_label)
-        #         return
-        #     else:
-        #         print("SOMETHING WENT WRONG")
 
 
         else:
