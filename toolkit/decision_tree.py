@@ -6,6 +6,7 @@ from decision_tree_node import TreeNode
 
 import numpy as np
 import math
+import copy as cp
 
 
 class DecisionTreeLearner(SupervisedLearner):
@@ -59,18 +60,13 @@ class DecisionTreeLearner(SupervisedLearner):
 
         self.compute_children_of_node(self.root_node)
 
-        for child in self.root_node.children:
-            print('FEATURE DECIDED', child.feature_decided)
-            print('FEATURE DECISION', child.feature_value_decision)
-            print()
-
         self.compute_children_of_node(self.root_node.children[0])
 
         for child in self.root_node.children:
             self.build_tree_recursive(child)
 
         print()
-        self.visualize_tree(self.root_node)
+        # self.visualize_tree(self.root_node)
         self.average_label = []
         for i in range(labels.shape[1]): # for each label column
             if labels.is_nominal(i): # assumes 1D label
@@ -89,7 +85,7 @@ class DecisionTreeLearner(SupervisedLearner):
 
             class_count = len(node.labels.data[pre_split])
             class_per_attribute = class_count / node.features_n
-            print("class per attribute, in calculating node info", class_per_attribute)
+            # print("class per attribute, in calculating node info", class_per_attribute)
             if class_per_attribute != 0:
                 node.information += ((-1) * class_per_attribute) * math.log(class_per_attribute, 2)
         # print('NODE INFORMATION', node.information)
@@ -109,7 +105,7 @@ class DecisionTreeLearner(SupervisedLearner):
         information_gains = []
 
         for attribute in decisions_to_make:
-            print("ATTRIBUTE", attribute)
+            # print("ATTRIBUTE", attribute)
             possible_next_decisions_nodes = []
 
             attribute_values = [i for i in range(parent_node.features.unique_value_count(attribute))]
@@ -117,7 +113,7 @@ class DecisionTreeLearner(SupervisedLearner):
 
             for attribute_value in attribute_values:
                 attribute_value_info_loss = 0
-                print('ATTRIBUTE VALUE', attribute_value)
+                # print('ATTRIBUTE VALUE', attribute_value)
                 attribute_value_node = TreeNode()
                 attribute_value_node.parent_node = parent_node
 
@@ -152,8 +148,8 @@ class DecisionTreeLearner(SupervisedLearner):
                 attribute_info_loss += attribute_value_info_loss
 
             possible_next_decisions += [possible_next_decisions_nodes]
-            print('attribute info loss', attribute_info_loss)
-            print('parent information', parent_node.information)
+            # print('attribute info loss', attribute_info_loss)
+            # print('parent information', parent_node.information)
             attribute_information_gain = parent_node.information - attribute_info_loss
 
             for child_node_created in possible_next_decisions_nodes:
@@ -210,8 +206,51 @@ class DecisionTreeLearner(SupervisedLearner):
         Returns:
             array-like: 2D array of predictions (shape = instances, # of output classes)
         """
+        data = cp.deepcopy(features.data)
+        current_node = self.root_node
+        classified = False
+        predictions_list = []
+
+
+        print('TYPE OF DATAAAAAAAAAAAAAAAA')
+        print(type(features.data[0][0]))
+
+        for row_num, row in enumerate(data):
+            print('ROW', row)
+            current_node = self.root_node
+            while current_node.classification_label is None:
+                any_child = current_node.children[0]
+                data_point_attribute_value = row[any_child.feature_decided]
+                print()
+                print('FEATURE DECIDED', any_child.feature_decided)
+                print('FEATURE VALUE FOR DATA POINT', data_point_attribute_value)
+                print()
+
+                for child in current_node.children:
+                    if data_point_attribute_value == child.feature_value_decision:
+                        current_node = child
+                        current_node.to_string();
+                        break
+
+            print('FINAL DECISION', current_node.classification_label)
+            predictions_list += [current_node.classification_label]
+            print('BUILDING PREDICTIONS', predictions_list)
+            print()
+            print()
+
+
+
         pred = np.tile(self.average_label, features.shape[0]) # make a 1D vector of predictions, 1 for each instance
-        return pred.reshape(-1,1) # reshape this so it is the correct shape = instances, # of output classes
+        x = pred.reshape(-1,1) # reshape this so it is the correct shape = instances, # of output classes
+
+        print("X")
+        print(x)
+        print('FINAL PREDICTIONS')
+        print(predictions_list)
+
+        predictions = np.asarray(predictions_list, dtype=np.float64)
+
+        return predictions.reshape(-1, 1)
 
     def unique(self, list_x):
         if type(list_x) is list:
