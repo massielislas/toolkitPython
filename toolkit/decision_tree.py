@@ -60,8 +60,6 @@ class DecisionTreeLearner(SupervisedLearner):
 
         self.compute_children_of_node(self.root_node)
 
-        self.compute_children_of_node(self.root_node.children[0])
-
         for child in self.root_node.children:
             self.build_tree_recursive(child)
 
