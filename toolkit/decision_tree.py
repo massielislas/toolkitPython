@@ -68,7 +68,7 @@ class DecisionTreeLearner(SupervisedLearner):
             self.number_of_attribute_values[column] += 1
 
 
-        print(self.number_of_attribute_values)
+        # print(self.number_of_attribute_values)
 
 
         for i in range(5):
@@ -249,15 +249,28 @@ class DecisionTreeLearner(SupervisedLearner):
                 any_child = current_node.children[0]
                 data_point_attribute_value = row[any_child.feature_decided]
                 # print()
+                # print('')
+                # print('NUMBER OF ATTRIBUTE VALUES', self.number_of_attribute_values)
                 # print('FEATURE DECIDED', any_child.feature_decided)
                 # print('FEATURE VALUE FOR DATA POINT', data_point_attribute_value)
                 # print()
 
+                moved_down_the_tree = False
                 for child in current_node.children:
                     if data_point_attribute_value == child.feature_value_decision:
+                        moved_down_the_tree = True
                         current_node = child
                         # current_node.to_string();
                         break
+
+                if moved_down_the_tree == False:
+                    most_data = -1
+                    for child in current_node.children:
+                        if child.features_n > most_data:
+                            most_data = child.features_n
+                            current_node = child
+
+
 
             # print('FINAL DECISION', current_node.classification_label)
             predictions_list += [current_node.classification_label]
@@ -270,14 +283,12 @@ class DecisionTreeLearner(SupervisedLearner):
         pred = np.tile(self.average_label, features.shape[0]) # make a 1D vector of predictions, 1 for each instance
         x = pred.reshape(-1,1) # reshape this so it is the correct shape = instances, # of output classes
 
-        # print("X")
-        # print(x)
-        # print('FINAL PREDICTIONS')
-        # print(predictions_list)
+        #print(x)
 
         predictions = np.asarray(predictions_list, dtype=np.float64)
+        predictions_return = predictions.reshape(-1, 1)
 
-        return predictions.reshape(-1, 1)
+        return predictions_return
 
     def unique(self, list_x):
         if type(list_x) is list:

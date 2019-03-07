@@ -207,7 +207,10 @@ class ToolkitSession:
             self._print_confusion_matrix(features=test_data.get_features(), labels=test_data.get_labels())
 
         elif self.eval_method == "cross":
+            # print('PARAMETER')
+            self.eval_parameter = int(self.eval_parameter)
             self.cross_validate(self.eval_parameter) # confusion matrix not supported for CV
+            type(self.eval_parameter)
         else:
             raise Exception("Unrecognized evaluation method '{}'".format(self.eval_method))
 
@@ -282,8 +285,8 @@ class ToolkitSession:
             start_test = int(i * self.arff.shape[0] / folds)
             end_test = int((i + 1) * self.arff.shape[0] / folds)
 
-            train_features = self.arff.get_features(row_idx=np.r_[0:start_test, end_test:])
-            train_labels = self.arff.get_labels(row_idx=np.r_[0:start_test, end_test:])
+            train_features =self.arff.get_features(row_idx=np.r_[0:start_test,end_test:self.arff.shape[0]])
+            train_labels = self.arff.get_labels(row_idx=np.r_[0:start_test, end_test:self.arff.shape[0]])
 
             test_features = self.arff.get_features(slice(start_test,end_test))
             test_labels = self.arff.get_labels(slice(start_test,end_test))
@@ -291,6 +294,8 @@ class ToolkitSession:
 
     def cross_validate(self, folds, reps=1):
         print("Calculating accuracy using cross-validation...")
+
+
 
         if folds <= 0:
             raise Exception("Number of folds must be greater than 0")
