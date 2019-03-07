@@ -21,6 +21,14 @@ class DecisionTreeLearner(SupervisedLearner):
     output_classes_num = 0
     root_node = None
     number_of_attribute_values = []
+    pruning = False
+    validation = False
+    validation_set = None
+    validation_set_labels = None
+    training_set = None
+    training_set_labels = None
+    test_set = None
+    test_set_labels = None
 
     def __init__(self, data=None, example_hyperparameter=None):
         """ Example learner initialization. Any additional variables passed to the Session will be passed on to the learner,
@@ -41,7 +49,8 @@ class DecisionTreeLearner(SupervisedLearner):
 
     def train(self, features, labels):
         """
-        :type parent_node: Arff
+        :type features: Arff
+        :type features: Arff
         """
         # print(features.data)
 
@@ -51,6 +60,13 @@ class DecisionTreeLearner(SupervisedLearner):
         #         if features.is_missing(features.data[i][j]):
         #             features.data[i, j] = set_missing_to
 
+        self.split_validation_and_training_and_test(features, labels)
+        features.shuffle(labels)
+        if self.validation == True:
+            pass
+        else:
+            self.training_set = features
+            self.training_set_labels = labels
         for j in range(len(features.data[0])):
             self.number_of_attribute_values += [features.unique_value_count(j)]
 
@@ -79,10 +95,10 @@ class DecisionTreeLearner(SupervisedLearner):
             features (Arff): 2D array of feature values (all instances)
             labels (Arff): 2D array of feature labels (all instances)
         """
-        self.all_decisions = [i for i in range(len(features[0]))]
+        self.all_decisions = [i for i in range(len(self.training_set[0]))]
         self.root_node = TreeNode()
-        self.root_node.set_features(features)
-        self.root_node.labels = labels
+        self.root_node.set_features(self.training_set)
+        self.root_node.labels = self.training_set_labels
         self.output_classes_num = labels.unique_value_count(0)
 
         self.compute_node_information(node=self.root_node)
@@ -201,6 +217,9 @@ class DecisionTreeLearner(SupervisedLearner):
 
         decisions_to_make = self.sub_lists(self.all_decisions, node.decisions_made)
         unique_values = self.unique(node.labels.data)
+
+        # if self.pruning == True:
+        #     pass
 
 
         if len(decisions_to_make) == 0:
@@ -328,5 +347,48 @@ class DecisionTreeLearner(SupervisedLearner):
             print()
             for child in node.children:
                 self.visualize_tree(child)
+
+
+    def split_validation_and_training_and_test(self, labels, features):
+        """
+        :type features: Arff
+        :type features: Arff
+        """
+        labels.shuffle(features)
+
+        # rows_to_keep = self.get_indices_by_boolean(pre_split)
+        # columns_to_keep = slice(parent_node.features.data[0].size)
+        # new_features = parent_node.features.create_subset_arff(rows_to_keep, columns_to_keep, 0)
+        # attribute_value_node.set_features(new_features)
+        # columns_to_keep = slice(parent_node.labels.data[0].size)
+        # new_labels = parent_node.labels.create_subset_arff(rows_to_keep, columns_to_keep, 0)
+
+        whole_set_size = len(features.data)
+        test_size = int(whole_set_size // (100/25))
+
+        training_and_validation_size = whole_set_size - test_size
+
+        validation_size = int(training_and_validation_size // (100/20))
+
+        training_size = training_and_validation_size - validation_size
+
+        rows_for_test = [i for i in range(test_size)]
+        rows_for_validation = [i + test_size for i in range(validation_size)]
+        rows_for_training = [i + test_size + validation_size for i in range(training_size)]
+
+
+        columns_for_labels = slice(labels.data[0].size)
+        columns_for_features = slice(features.data[0].size)
+
+        # CREATE TEST SET
+        self.test_set = features.create_subset_arff(rows_for_test, columns_for_features, 0)
+        self.test_set_labels = labels.create_subset_arff(rows_for_test, columns_for_labels, 0)
+
+        # print('test', rows_for_test)
+        # print('validation', rows_for_validation)
+        # print('training', rows_for_training)
+
+        return None
+
 
 
