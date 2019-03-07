@@ -21,8 +21,10 @@ class DecisionTreeLearner(SupervisedLearner):
     output_classes_num = 0
     root_node = None
     number_of_attribute_values = []
+
     pruning = False
-    validation = False
+    validation = True
+
     validation_set = None
     validation_set_labels = None
     training_set = None
@@ -60,10 +62,9 @@ class DecisionTreeLearner(SupervisedLearner):
         #         if features.is_missing(features.data[i][j]):
         #             features.data[i, j] = set_missing_to
 
-        self.split_validation_and_training_and_test(features, labels)
-        features.shuffle(labels)
+
         if self.validation == True:
-            pass
+            self.split_validation_and_training_and_test(features, labels)
         else:
             self.training_set = features
             self.training_set_labels = labels
@@ -117,6 +118,10 @@ class DecisionTreeLearner(SupervisedLearner):
                 self.average_label += [labels.most_common_value(0)]    # nominal
             else:
                 self.average_label += [labels.column_mean(0)]  # continuous
+
+
+        print('CALCULATING TEST ACCURACY...')
+        self.predict_all(self.test_set)
 
 
     def compute_node_information(self, node):
@@ -229,7 +234,8 @@ class DecisionTreeLearner(SupervisedLearner):
                 node.set_classification_label(unique_values[0])
                 return
             else:
-                print("SOMETHING WENT WRONG")
+                # print("SOMETHING WENT WRONG")
+                node.set_classification_label(self.training_set_labels.most_common_value(0))
 
         elif len(unique_values) == 1:
             node.set_classification_label(unique_values[0])
@@ -383,6 +389,13 @@ class DecisionTreeLearner(SupervisedLearner):
         # CREATE TEST SET
         self.test_set = features.create_subset_arff(rows_for_test, columns_for_features, 0)
         self.test_set_labels = labels.create_subset_arff(rows_for_test, columns_for_labels, 0)
+
+        self.validation_set = features.create_subset_arff(rows_for_validation, columns_for_features, 0)
+        self.validation_set_labels = labels.create_subset_arff(rows_for_validation, columns_for_labels, 0)
+
+        self.training_set = features.create_subset_arff(rows_for_training, columns_for_features, 0)
+        self.training_set_labels = labels.create_subset_arff(rows_for_training, columns_for_labels, 0)
+
 
         # print('test', rows_for_test)
         # print('validation', rows_for_validation)
