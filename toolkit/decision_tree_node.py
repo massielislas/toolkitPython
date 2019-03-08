@@ -13,6 +13,8 @@ class TreeNode:
     labels = None
     information_gain = 0
     classification_label = None
+    accuracy = 0
+    pruned = True
 
 
     def __init__(self):
