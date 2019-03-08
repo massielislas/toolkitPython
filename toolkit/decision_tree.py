@@ -22,7 +22,7 @@ class DecisionTreeLearner(SupervisedLearner):
     root_node = None
     number_of_attribute_values = []
 
-    prune = False
+    prune = True
     validation = True
 
     validation_set = None
@@ -133,11 +133,17 @@ class DecisionTreeLearner(SupervisedLearner):
         training_predictions = self.predict_all(self.training_set)
         training_accuracy = self.calculate_accuracy(training_predictions, self.training_set_labels)
         print(training_accuracy)
+        print('CALCULATING VALIDATION ACCURACY')
+        validation_predictions = self.predict_all(self.validation_set)
+        validation_accuracy = self.calculate_accuracy(validation_predictions, self.validation_set_labels)
+        print(validation_accuracy)
 
         if self.prune == True:
-            self.prune_tree(self.root_node)
+            self.prune_tree(self.root_node, validation_accuracy)
             pruned_predictions = self.predict_pruned(self.validation_set)
-            self.calculate_accuracy(pruned_predictions, self.validation_set_labels)
+            pruned_accuracy = self.calculate_accuracy(pruned_predictions, self.validation_set_labels)
+            print('FINAL PRUNED ACCURACY')
+            print(pruned_accuracy)
 
     def prune_tree(self, node, default_accuracy):
 
@@ -372,15 +378,15 @@ class DecisionTreeLearner(SupervisedLearner):
         for row_num, row in enumerate(data):
             # print('ROW', row)
             current_node = self.root_node
-            while current_node.classification_label is None or current_node.pruned == True:
+            while current_node.classification_label is None and current_node.pruned == False and (len(current_node.children) != 0):
                 any_child = current_node.children[0]
                 data_point_attribute_value = row[any_child.feature_decided]
-                # print()
-                # print('')
-                # print('NUMBER OF ATTRIBUTE VALUES', self.number_of_attribute_values)
-                # print('FEATURE DECIDED', any_child.feature_decided)
-                # print('FEATURE VALUE FOR DATA POINT', data_point_attribute_value)
-                # print()
+                print()
+                print('')
+                print('NUMBER OF ATTRIBUTE VALUES', self.number_of_attribute_values)
+                print('FEATURE DECIDED', any_child.feature_decided)
+                print('FEATURE VALUE FOR DATA POINT', data_point_attribute_value)
+                print()
 
                 moved_down_the_tree = False
                 for child in current_node.children:
@@ -402,7 +408,8 @@ class DecisionTreeLearner(SupervisedLearner):
                 predictions_list += [current_node.classification_label]
 
             else:
-                predictions_list += [current_node.parent_node.labels.most_common_value(0)]
+                current_node.to_string()
+                predictions_list += [current_node.labels.most_common_value(0)]
             # print('BUILDING PREDICTIONS', predictions_list)
             # print()
             # print()
