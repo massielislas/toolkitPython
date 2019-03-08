@@ -22,7 +22,7 @@ class DecisionTreeLearner(SupervisedLearner):
     root_node = None
     number_of_attribute_values = []
 
-    prune = False
+    prune = True
     validation = True
 
     validation_set = None
@@ -31,7 +31,7 @@ class DecisionTreeLearner(SupervisedLearner):
     training_set_labels = None
     test_set = None
     test_set_labels = None
-    experiment = True
+    experiment = False
     all_features_size = 0
 
     def __init__(self, data=None, example_hyperparameter=None):
@@ -64,12 +64,6 @@ class DecisionTreeLearner(SupervisedLearner):
         #         if features.is_missing(features.data[i][j]):
         #             features.data[i, j] = set_missing_to
 
-
-        if self.validation == True:
-            self.split_validation_and_training_and_test(labels, features)
-        else:
-            self.training_set = features
-            self.training_set_labels = labels
         for j in range(len(features.data[0])):
             self.number_of_attribute_values += [features.unique_value_count(j)]
 
@@ -85,6 +79,12 @@ class DecisionTreeLearner(SupervisedLearner):
 
         for column in columns_with_missing_values:
             self.number_of_attribute_values[column] += 1
+
+        if self.validation == True:
+            self.split_validation_and_training_and_test(labels, features)
+        else:
+            self.training_set = features
+            self.training_set_labels = labels
 
 
         # print(self.number_of_attribute_values)
@@ -128,6 +128,7 @@ class DecisionTreeLearner(SupervisedLearner):
 
         for i in range(5):
             print()
+        self.visualize_tree(self.root_node)
         print('CALCULATING TEST ACCURACY...')
         test_predictions = self.predict_all(self.test_set)
         test_accuracy = self.calculate_accuracy(test_predictions, self.test_set_labels)
@@ -153,7 +154,8 @@ class DecisionTreeLearner(SupervisedLearner):
             pruned_tree_node_count = 0
             print('PRUNED TREE NODE COUNT')
             print(self.count_number_of_prunedtree_nodes(self.root_node, pruned_tree_node_count))
-            self.visualize_tree(self.root_node)
+        self.count_levels()
+
 
     def prune_tree(self, node, default_accuracy):
 
@@ -198,6 +200,9 @@ class DecisionTreeLearner(SupervisedLearner):
             pre_split = node.labels.data[:, 0] == class_num
 
             class_count = len(node.labels.data[pre_split])
+            if node.features_n == 0:
+                node.information += 0
+                return
             class_per_attribute = class_count / node.features_n
             # print("class per attribute, in calculating node info", class_per_attribute)
             if class_per_attribute != 0:
@@ -252,11 +257,12 @@ class DecisionTreeLearner(SupervisedLearner):
                         class_count = len(attribute_value_node.labels[pre_split_labels])
                         # print('OUTPUT CLASS NUM', class_count)
                         # print('TOTAL IN ATTRIBUTE', attribute_value_node.features_n)
-                        class_per_attribute = class_count / attribute_value_node.features_n
-                        # print(class_per_attribute)
-                        # print("CLASS COUNT", class_count)
-                        if class_per_attribute != 0:
-                            attribute_value_info_loss += (-1) * (class_count / attribute_value_node.features_n) * math.log(class_count / attribute_value_node.features_n, 2)
+                        if attribute_value_node.features_n > 0:
+                            class_per_attribute = class_count / attribute_value_node.features_n
+                            # print(class_per_attribute)
+                            # print("CLASS COUNT", class_count)
+                            if class_per_attribute != 0:
+                                attribute_value_info_loss += (-1) * (class_count / attribute_value_node.features_n) * math.log(class_count / attribute_value_node.features_n, 2)
 
                 attribute_value_info_loss *= attribute_value_node.features_n / parent_node.features_n
                 attribute_info_loss += attribute_value_info_loss
@@ -296,7 +302,7 @@ class DecisionTreeLearner(SupervisedLearner):
                 return
             else:
                 # print("SOMETHING WENT WRONG")
-                node.set_classification_label(node.labels.most_common_value(0))
+                node.set_classification_label(node.parent.labels.most_common_value(0))
 
         elif len(unique_values) == 1:
             node.set_classification_label(unique_values[0])
@@ -304,11 +310,12 @@ class DecisionTreeLearner(SupervisedLearner):
             # print('EVERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR')
             return
 
+        elif node.features_n == 0:
+            node.set_classification_label(node.parent.labels.most_common_value(0))
+
         elif self.experiment == True:
-            if node.features_n < self.all_features_size / self.output_classes_num:
+            if node.features_n < self.all_features_size / (self.output_classes_num / 4):
                 node.set_classification_label(node.labels.most_common_value(0))
-
-
 
         else:
             self.compute_node_information(node)
@@ -336,7 +343,7 @@ class DecisionTreeLearner(SupervisedLearner):
         for row_num, row in enumerate(data):
             # print('ROW', row)
             current_node = self.root_node
-            while current_node.classification_label is None:
+            while current_node.classification_label is None and len(current_node.children) > 0:
                 any_child = current_node.children[0]
                 data_point_attribute_value = row[any_child.feature_decided]
                 # print()
@@ -476,6 +483,24 @@ class DecisionTreeLearner(SupervisedLearner):
             for child in node.children:
                 self.visualize_tree(child)
 
+    def count_levels(self):
+        node_count = 0
+        count = 1
+        current_generation = self.root_node.children
+        next_generation = []
+
+        while len(current_generation) > 0:
+            next_generation = []
+
+            for node in current_generation:
+                next_generation += node.children
+                node_count += 1
+            current_generation = next_generation
+            count += 1
+
+        print('TREE DEPTH', count)
+        print('NODE COUNT', node_count)
+
     def count_number_of_nodes(self, node, count):
         if len(node.children) == 0:
             # print(count)
@@ -504,7 +529,7 @@ class DecisionTreeLearner(SupervisedLearner):
         labels.shuffle(features)
 
         whole_set_size = len(features.data)
-        test_size = int(whole_set_size // (100/20))
+        test_size = int(whole_set_size // (100/1))
 
         training_and_validation_size = whole_set_size - test_size
 

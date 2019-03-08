@@ -340,5 +340,5 @@ class ToolkitArgParser(argparse.ArgumentParser):
 if __name__ == '__main__':
     manager = MLSystemManager()
     session = manager.create_session_from_argv()
-    session.main()
+    # session.main()
 
