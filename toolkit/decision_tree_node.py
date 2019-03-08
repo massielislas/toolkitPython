@@ -52,6 +52,8 @@ class TreeNode:
         # if self.classification_label is not None:
         print("!!! CLASSIFICATION LABEL", self.classification_label)
 
+        print()
+
     def add_decision(self, new_decision):
         if self.parent_node is not None:
             if len(self.decisions_made) == 0:
