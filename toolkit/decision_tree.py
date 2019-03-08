@@ -64,7 +64,7 @@ class DecisionTreeLearner(SupervisedLearner):
 
 
         if self.validation == True:
-            self.split_validation_and_training_and_test(features, labels)
+            self.split_validation_and_training_and_test(labels, features)
         else:
             self.training_set = features
             self.training_set_labels = labels
@@ -88,8 +88,8 @@ class DecisionTreeLearner(SupervisedLearner):
         # print(self.number_of_attribute_values)
 
 
-        for i in range(5):
-            print("")
+        # for i in range(5):
+        #     print("")
         """
         This function should loop through the data and create/update a ML model until some stopping criteria is reached
         Args:
@@ -120,16 +120,43 @@ class DecisionTreeLearner(SupervisedLearner):
                 self.average_label += [labels.column_mean(0)]  # continuous
 
 
-        print('CALCULATING TEST ACCURACY...')
-        self.predict_all(self.test_set)
 
+        # print(test_predictions)
+
+        for i in range(5):
+            print()
+        print('CALCULATING TEST ACCURACY...')
+        test_predictions = self.predict_all(self.test_set)
+        test_accuracy = self.calculate_accuracy(test_predictions, self.test_set_labels)
+        print(test_accuracy)
+        print('CALCULATING TRAINING ACCURACY')
+        training_predictions = self.predict_all(self.training_set)
+        training_accuracy = self.calculate_accuracy(training_predictions, self.training_set_labels)
+        print(training_accuracy)
+
+    def calculate_accuracy(self, predictions, labels):
+        # print('PREDICTIONS')
+        # print(predictions)
+        # print('LABELS')
+        # print(labels.data)
+        correct_predictions = 0
+        for i,label in enumerate(labels.data):
+            # print('PREDICTIONS AND LABEL', predictions[i], label)
+            if predictions[i] == label:
+                correct_predictions += 1
+
+        # print('LENGTH', len(predictions))
+        # print('CORRECT PREDICTIONS')
+        # print(correct_predictions)
+        return correct_predictions / len(predictions)
+
+        #print(labels.data[0][0])
 
     def compute_node_information(self, node):
         """
         :type node: TreeNode
         """
         for class_num in range(self.output_classes_num):
-            # print("HEY LABELS", node.labels)
             pre_split = node.labels.data[:, 0] == class_num
 
             class_count = len(node.labels.data[pre_split])
@@ -370,11 +397,11 @@ class DecisionTreeLearner(SupervisedLearner):
         # new_labels = parent_node.labels.create_subset_arff(rows_to_keep, columns_to_keep, 0)
 
         whole_set_size = len(features.data)
-        test_size = int(whole_set_size // (100/25))
+        test_size = int(whole_set_size // (100/20))
 
         training_and_validation_size = whole_set_size - test_size
 
-        validation_size = int(training_and_validation_size // (100/20))
+        validation_size = int(training_and_validation_size // (100/10))
 
         training_size = training_and_validation_size - validation_size
 
@@ -396,6 +423,21 @@ class DecisionTreeLearner(SupervisedLearner):
         self.training_set = features.create_subset_arff(rows_for_training, columns_for_features, 0)
         self.training_set_labels = labels.create_subset_arff(rows_for_training, columns_for_labels, 0)
 
+
+        # print('TEST SET')
+        # print(self.test_set)
+        # print('TEST SET LABELS')
+        # print(self.test_set_labels)
+        #
+        # print('VALIDATION SET')
+        # print(self.validation_set)
+        # print('VALIDATION SET LABELS')
+        # print(self.validation_set_labels)
+        #
+        # print('TRAINING SET')
+        # print(self.training_set)
+        # print('TRAINING SET LABELS')
+        # print(self.training_set_labels)
 
         # print('test', rows_for_test)
         # print('validation', rows_for_validation)
