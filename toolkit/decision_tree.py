@@ -22,7 +22,7 @@ class DecisionTreeLearner(SupervisedLearner):
     root_node = None
     number_of_attribute_values = []
 
-    prune = True
+    prune = False
     validation = True
 
     validation_set = None
@@ -31,6 +31,8 @@ class DecisionTreeLearner(SupervisedLearner):
     training_set_labels = None
     test_set = None
     test_set_labels = None
+    experiment = True
+    all_features_size = 0
 
     def __init__(self, data=None, example_hyperparameter=None):
         """ Example learner initialization. Any additional variables passed to the Session will be passed on to the learner,
@@ -97,6 +99,7 @@ class DecisionTreeLearner(SupervisedLearner):
             labels (Arff): 2D array of feature labels (all instances)
         """
         self.all_decisions = [i for i in range(len(self.training_set[0]))]
+        self.all_features_size = len(features.data)
         self.root_node = TreeNode()
         self.root_node.set_features(self.training_set)
         self.root_node.labels = self.training_set_labels
@@ -300,6 +303,11 @@ class DecisionTreeLearner(SupervisedLearner):
             # print('CLASSIFICATION LABEL', node.classification_label)
             # print('EVERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR')
             return
+
+        elif self.experiment == True:
+            if node.features_n < self.all_features_size / self.output_classes_num:
+                node.set_classification_label(node.labels.most_common_value(0))
+
 
 
         else:
