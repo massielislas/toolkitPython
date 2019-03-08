@@ -136,17 +136,24 @@ class DecisionTreeLearner(SupervisedLearner):
 
         if self.prune == True:
             self.prune_tree(self.root_node)
+            pruned_predictions = self.predict_pruned(self.validation_set)
+            self.calculate_accuracy(pruned_predictions, self.validation_set_labels)
 
     def prune_tree(self, node, default_accuracy):
+
+        if len(node.children) == 0:
+            return
+
+        else:
+            for child in node.children:
+                self.prune_tree(child, default_accuracy)
+
         node.pruned = True
         predictions = self.predict_pruned(self.validation_set)
         accuracy = self.calculate_accuracy(predictions, self.validation_set_labels)
 
         if accuracy + 1 < default_accuracy:
             node.pruned = False
-
-        if len(node.children) == 0:
-            return
 
 
     def calculate_accuracy(self, predictions, labels):
@@ -455,13 +462,6 @@ class DecisionTreeLearner(SupervisedLearner):
         """
         labels.shuffle(features)
 
-        # rows_to_keep = self.get_indices_by_boolean(pre_split)
-        # columns_to_keep = slice(parent_node.features.data[0].size)
-        # new_features = parent_node.features.create_subset_arff(rows_to_keep, columns_to_keep, 0)
-        # attribute_value_node.set_features(new_features)
-        # columns_to_keep = slice(parent_node.labels.data[0].size)
-        # new_labels = parent_node.labels.create_subset_arff(rows_to_keep, columns_to_keep, 0)
-
         whole_set_size = len(features.data)
         test_size = int(whole_set_size // (100/20))
 
@@ -488,26 +488,6 @@ class DecisionTreeLearner(SupervisedLearner):
 
         self.training_set = features.create_subset_arff(rows_for_training, columns_for_features, 0)
         self.training_set_labels = labels.create_subset_arff(rows_for_training, columns_for_labels, 0)
-
-
-        # print('TEST SET')
-        # print(self.test_set)
-        # print('TEST SET LABELS')
-        # print(self.test_set_labels)
-        #
-        # print('VALIDATION SET')
-        # print(self.validation_set)
-        # print('VALIDATION SET LABELS')
-        # print(self.validation_set_labels)
-        #
-        # print('TRAINING SET')
-        # print(self.training_set)
-        # print('TRAINING SET LABELS')
-        # print(self.training_set_labels)
-
-        # print('test', rows_for_test)
-        # print('validation', rows_for_validation)
-        # print('training', rows_for_training)
 
         return None
 
