@@ -135,65 +135,18 @@ class DecisionTreeLearner(SupervisedLearner):
         print(training_accuracy)
 
         if self.prune == True:
-            self.prune_tree()
+            self.prune_tree(self.root_node)
 
-    def prune_tree(self):
+    def prune_tree(self, node, default_accuracy):
+        node.pruned = True
+        predictions = self.predict_pruned(self.validation_set)
+        accuracy = self.calculate_accuracy(predictions, self.validation_set_labels)
 
-        """ Make a prediction for each instance in dataset
-        Args:
-            features (2D array-like): Array of feature values
-        Returns:
-            array-like: 2D array of predictions (shape = instances, # of output classes)
-        """
-        data = cp.deepcopy(self.validation_set.data)
-        current_node = self.root_node
-        classified = False
-        predictions_list = []
-        pred = np.tile(self.average_label, self.validation_set.shape[0]) # make a 1D vector of predictions, 1 for each instance
-        pred = pred.reshape(-1,1) # reshape this so it is the correct shape = instances, # of output classes
-        best_accuracy = self.calculate_accuracy(pred, self.validation_set_labels)
+        if accuracy + 1 < default_accuracy:
+            node.pruned = False
 
-
-        # print('TYPE OF DATAAAAAAAAAAAAAAAA')
-        # print(type(features.data[0][0]))
-
-        for row_num, row in enumerate(data):
-            # print('ROW', row)
-            current_node = self.root_node
-            while current_node.classification_label is None:
-                any_child = current_node.children[0]
-                data_point_attribute_value = row[any_child.feature_decided]
-                # print()
-                # print('')
-                # print('NUMBER OF ATTRIBUTE VALUES', self.number_of_attribute_values)
-                # print('FEATURE DECIDED', any_child.feature_decided)
-                # print('FEATURE VALUE FOR DATA POINT', data_point_attribute_value)
-                # print()
-                moved_down_the_tree = False
-                for child in current_node.children:
-                    if data_point_attribute_value == child.feature_value_decision:
-                        moved_down_the_tree = True
-                        current_node = child
-                        # current_node.to_string();
-                        break
-
-                if moved_down_the_tree == False:
-                    most_data = -1
-                    for child in current_node.children:
-                        if child.features_n > most_data:
-                            most_data = child.features_n
-                            current_node = child
-
-
-
-            # print('FINAL DECISION', current_node.classification_label)
-            predictions_list += [current_node.classification_label]
-            # print('BUILDING PREDICTIONS', predictions_list)
-            # print()
-            # print()
-
-        predictions = np.asarray(predictions_list, dtype=np.float64)
-        predictions_return = predictions.reshape(-1, 1)
+        if len(node.children) == 0:
+            return
 
 
     def calculate_accuracy(self, predictions, labels):
@@ -384,6 +337,65 @@ class DecisionTreeLearner(SupervisedLearner):
 
             # print('FINAL DECISION', current_node.classification_label)
             predictions_list += [current_node.classification_label]
+            # print('BUILDING PREDICTIONS', predictions_list)
+            # print()
+            # print()
+
+        predictions = np.asarray(predictions_list, dtype=np.float64)
+        predictions_return = predictions.reshape(-1, 1)
+
+        return predictions_return
+
+    def predict_pruned(self, features):
+        """ Make a prediction for each instance in dataset
+        Args:
+            features (2D array-like): Array of feature values
+        Returns:
+            array-like: 2D array of predictions (shape = instances, # of output classes)
+        """
+        data = cp.deepcopy(features.data)
+        current_node = self.root_node
+        classified = False
+        predictions_list = []
+
+
+        # print('TYPE OF DATAAAAAAAAAAAAAAAA')
+        # print(type(features.data[0][0]))
+
+        for row_num, row in enumerate(data):
+            # print('ROW', row)
+            current_node = self.root_node
+            while current_node.classification_label is None or current_node.pruned == True:
+                any_child = current_node.children[0]
+                data_point_attribute_value = row[any_child.feature_decided]
+                # print()
+                # print('')
+                # print('NUMBER OF ATTRIBUTE VALUES', self.number_of_attribute_values)
+                # print('FEATURE DECIDED', any_child.feature_decided)
+                # print('FEATURE VALUE FOR DATA POINT', data_point_attribute_value)
+                # print()
+
+                moved_down_the_tree = False
+                for child in current_node.children:
+                    if data_point_attribute_value == child.feature_value_decision:
+                        moved_down_the_tree = True
+                        current_node = child
+                        # current_node.to_string();
+                        break
+
+                if moved_down_the_tree == False:
+                    most_data = -1
+                    for child in current_node.children:
+                        if child.features_n > most_data:
+                            most_data = child.features_n
+                            current_node = child
+
+            # print('FINAL DECISION', current_node.classification_label)
+            if current_node.pruned == False:
+                predictions_list += [current_node.classification_label]
+
+            else:
+                predictions_list += [current_node.parent_node.labels.most_common_value(0)]
             # print('BUILDING PREDICTIONS', predictions_list)
             # print()
             # print()

@@ -14,7 +14,7 @@ class TreeNode:
     information_gain = 0
     classification_label = None
     accuracy = 0
-    pruned = True
+    pruned = False
 
 
     def __init__(self):
