@@ -48,6 +48,7 @@ class TreeNode:
 
         print('INFORMATION', self.information)
         print('INFORMATION GAIN', self.information_gain)
+        print('PRUNED', self.pruned)
         # if self.classification_label is not None:
         print("!!! CLASSIFICATION LABEL", self.classification_label)
 

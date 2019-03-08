@@ -144,6 +144,13 @@ class DecisionTreeLearner(SupervisedLearner):
             pruned_accuracy = self.calculate_accuracy(pruned_predictions, self.validation_set_labels)
             print('FINAL PRUNED ACCURACY')
             print(pruned_accuracy)
+            node_count = 0
+            print('NODE COUNT')
+            print(self.count_number_of_nodes(self.root_node, node_count))
+            pruned_tree_node_count = 0
+            print('PRUNED TREE NODE COUNT')
+            print(self.count_number_of_prunedtree_nodes(self.root_node, pruned_tree_node_count))
+            self.visualize_tree(self.root_node)
 
     def prune_tree(self, node, default_accuracy):
 
@@ -381,12 +388,12 @@ class DecisionTreeLearner(SupervisedLearner):
             while current_node.classification_label is None and current_node.pruned == False and (len(current_node.children) != 0):
                 any_child = current_node.children[0]
                 data_point_attribute_value = row[any_child.feature_decided]
-                print()
-                print('')
-                print('NUMBER OF ATTRIBUTE VALUES', self.number_of_attribute_values)
-                print('FEATURE DECIDED', any_child.feature_decided)
-                print('FEATURE VALUE FOR DATA POINT', data_point_attribute_value)
-                print()
+                # print()
+                # print('')
+                # print('NUMBER OF ATTRIBUTE VALUES', self.number_of_attribute_values)
+                # print('FEATURE DECIDED', any_child.feature_decided)
+                # print('FEATURE VALUE FOR DATA POINT', data_point_attribute_value)
+                # print()
 
                 moved_down_the_tree = False
                 for child in current_node.children:
@@ -408,7 +415,7 @@ class DecisionTreeLearner(SupervisedLearner):
                 predictions_list += [current_node.classification_label]
 
             else:
-                current_node.to_string()
+                # current_node.to_string()
                 predictions_list += [current_node.labels.most_common_value(0)]
             # print('BUILDING PREDICTIONS', predictions_list)
             # print()
@@ -460,6 +467,25 @@ class DecisionTreeLearner(SupervisedLearner):
             print()
             for child in node.children:
                 self.visualize_tree(child)
+
+    def count_number_of_nodes(self, node, count):
+        if len(node.children) == 0:
+            # print(count)
+            return count
+        else:
+            count +=1
+            for child in node.children:
+                self.count_number_of_nodes(child, count)
+
+    def count_number_of_prunedtree_nodes(self, node, count):
+        if len(node.children) == 0:
+            # print(count)
+            return count
+        else:
+            if node.pruned == False:
+                count += 1
+            for child in node.children:
+                self.count_number_of_prunedtree_nodes(child, count)
 
 
     def split_validation_and_training_and_test(self, labels, features):
