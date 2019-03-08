@@ -250,10 +250,6 @@ class DecisionTreeLearner(SupervisedLearner):
         decisions_to_make = self.sub_lists(self.all_decisions, node.decisions_made)
         unique_values = self.unique(node.labels.data)
 
-        # if self.pruning == True:
-        #     pass
-
-
         if len(decisions_to_make) == 0:
             # unique values will be a list
             unique_values = self.unique(node.labels.data)
@@ -262,7 +258,7 @@ class DecisionTreeLearner(SupervisedLearner):
                 return
             else:
                 # print("SOMETHING WENT WRONG")
-                node.set_classification_label(self.training_set_labels.most_common_value(0))
+                node.set_classification_label(node.labels.most_common_value(0))
 
         elif len(unique_values) == 1:
             node.set_classification_label(unique_values[0])
