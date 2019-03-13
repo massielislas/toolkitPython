@@ -3,6 +3,7 @@ from __future__ import (absolute_import, division, print_function, unicode_liter
 from supervised_learner import SupervisedLearner
 from baseline_learner import BaselineLearner
 from decision_tree import DecisionTreeLearner
+from knn import InstanceBasedLearner
 from arff import Arff
 import random
 import argparse
@@ -78,8 +79,8 @@ class MLSystemManager:
             "baseline": BaselineLearner,
             # "perceptron": PerceptronLearner,
             # "mlp": MultilayerPerceptronLearner,
-            "decisiontree": DecisionTreeLearner
-            # "knn": InstanceBasedLearner
+            "decisiontree": DecisionTreeLearner,
+            "knn": InstanceBasedLearner
         }
 
         if model in modelmap:
