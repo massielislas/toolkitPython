@@ -4,6 +4,7 @@ from arff import Arff
 
 import numpy as np
 import operator
+import sys
 
 
 class InstanceBasedLearner(SupervisedLearner):
@@ -23,32 +24,54 @@ class InstanceBasedLearner(SupervisedLearner):
 
 
     def predict_all(self, features):
+        """
+        :type features: Arff
+        """
+        most_common_label = self.labels.most_common_value(0)
 
         predictions_list = []
 
         # go through all instances there are to predict
         for examining_row_n, examining_row in enumerate(features.data):
-            closest_labels = [None for i in range(self.k)]
-            closest_distances = [-1 for i in range(self.k)]
+            print('EXAMINING ROW', examining_row)
+            closest_labels = [most_common_label for i in range(self.k)]
+            closest_distances = [sys.maxsize for i in range(self.k)]
 
             # go through all the features there are to compare against
             for i, row_to_compare in enumerate(self.features.data):
-                distance_between_instances = 0
+                if np.array_equal(examining_row, row_to_compare) is not True:
+                    print('ROW TO COMPARE', row_to_compare)
+                    distance_between_instances = 0
 
-                # go through all attributes of an instance
-                for j in range(len(self.labels.data[i])):
+                    # go through all attributes of an instance
+                    for j in range(len(self.features.data[i])):
+                        print('j', j)
+                        if features.is_nominal(j):
+                            if examining_row[j] != row_to_compare[j]:
+                                distance_between_instances += 1
 
-                    if examining_row[j] == row_to_compare[i][j]:
-                        distance_between_instances += 1
+                        else:
+                            print("ROW", i)
+                            print('COLUMN',j)
+                            print('VALUE 1', examining_row[j])
+                            print('VALUE 2', row_to_compare[j])
+                            distance_difference = (examining_row[j] - row_to_compare[j]) ** 2
+                            distance_between_instances += distance_difference
 
-                # if this is one of the "closest so far" instances
-                if min(closest_distances) > distance_between_instances:
-                    largest_distance = np.argmax(closest_distances)
-                    closest_distances[largest_distance] = distance_between_instances
+                    # if this is one of the "closest so far" instances
+                    print('DISTANCE', distance_between_instances ** .5)
+                    distance_between_instances = distance_between_instances ** .5
+                    #print('INITIAL', closest_distances)
+                    if max(closest_distances) > distance_between_instances:
+                        largest_distance = np.argmax(closest_distances)
+                        closest_distances[largest_distance] = distance_between_instances
 
-                    closest_labels[largest_distance] = self.labels.data[i][0]
+                        closest_labels[largest_distance] = self.labels.data[i][0]
+                    #print('EVALUATE', clo)
 
             # votes dictionary
+            print('CLOSES LABELS', closest_labels)
+            print('CLOSEST DISTANES', closest_distances)
             votes = dict()
             for label_num, label in enumerate(closest_labels):
 
@@ -57,6 +80,8 @@ class InstanceBasedLearner(SupervisedLearner):
 
                 else:
                     vote = 1
+                if votes[label] is None:
+                    votes[label] = 0
 
                 votes[label] += vote
             prediction = max(votes.items(), key=operator.itemgetter(1))[0]
