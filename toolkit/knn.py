@@ -84,9 +84,28 @@ class InstanceBasedLearner(SupervisedLearner):
 
                     votes[label] += vote
 
+                prediction = max(votes.items(), key=operator.itemgetter(1))[0]
+                predictions_list += [prediction]
+
+            elif self.continuous_output is True:
+                regression_value = 0
+                distance_weights = 1
+                for label_num, label in enumerate(closest_labels):
+                    value_to_add = label
+                    if self.distance_weighting is True:
+                        distance_weight = closest_distances[label_num]**2
+                        value_to_add /= distance_weight
+                        distance_weights += distance_weight
+
+                    regression_value += value_to_add
+
+                if self.distance_weighting is True:
+                    regression_value /= distance_weights
+                else:
+                    regression_value /= len(closest_labels)
+
             # print('VOTES AFTER', votes)
-            prediction = max(votes.items(), key=operator.itemgetter(1))[0]
-            predictions_list += [prediction]
+
 
         # print('PREDICTIONS LIST', predictions_list)
 
