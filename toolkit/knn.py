@@ -12,9 +12,10 @@ class InstanceBasedLearner(SupervisedLearner):
     labels = None
     features = None
     k = 3
-    distance_weighting = False
+    distance_weighting = True
     continuous_output = False
     possible_missing_values = False
+    experiment = False
 
     def __init__(self, data=None, example_hyperparameter=None):
         pass
@@ -24,18 +25,70 @@ class InstanceBasedLearner(SupervisedLearner):
         self.labels = labels
         self.features = features
 
+        if self.experiment is True:
+            self.reduction(features, labels)
+
 
         if labels.unique_value_count(0) == 0:
             self.continuous_output = True
             # print('SETTING CONTINUOUS OUTPUT TO TRUE')
+
+    def reduction(self, features, labels):
+        """
+        :type features: Arff
+        :type labels: Arff
+        """
+
+        old_features = self.features
+        old_labels = self.labels
+        old_accuracy = -1
+        new_accuracy = 0
+
+        while new_accuracy > old_accuracy:
+
+            old_accuracy = new_accuracy
+            old_features = self.features
+            old_labels = self.labels
+
+            rows_to_keep = [i + 1 for i in range(len(features.data) - 1)]
+            columns_to_keep = slice(features.data[0].size)
+            new_features = features.create_subset_arff(rows_to_keep, columns_to_keep, 0)
+            columns_to_keep_labels = slice(labels.data[0].size)
+            new_labels = labels.create_subset_arff(rows_to_keep, columns_to_keep_labels, 0)
+
+            self.labels = new_labels
+            self.features = new_features
+
+            predictions = self.predict_all(features=features)
+            new_accuracy = self.calculate_accuracy(predictions, self.labels)
+
+            print('ACCURACY', new_accuracy)
+
+        self.features = old_features
+        self.labels = old_labels
+
+
+    def calculate_accuracy(self, predictions, labels):
+        # print('PREDICTIONS')
+        # print(predictions)
+        # print('LABELS')
+        # print(labels.data)
+        correct_predictions = 0
+        for i,label in enumerate(labels.data):
+            # print('PREDICTIONS AND LABEL', predictions[i], label)
+            if predictions[i] == label:
+                correct_predictions += 1
+
+        # print('LENGTH', len(predictions))
+        # print('CORRECT PREDICTIONS')
+        # print(correct_predictions)
+        return correct_predictions / len(predictions)
 
 
     def predict_all(self, features):
         """
         :type features: Arff
         """
-
-
 
         if self.possible_missing_values is True:
             for row_num, row in enumerate(features.data):
@@ -110,13 +163,15 @@ class InstanceBasedLearner(SupervisedLearner):
             elif self.continuous_output is True:
                 # print('CALCULATING FOR CONTINUOUS OUTPUT')
                 regression_value = 0
-                distance_weights = 1
+                distance_weights = 0
                 for label_num, label in enumerate(closest_labels):
                     value_to_add = label
                     if self.distance_weighting is True:
                         distance_weight = closest_distances[label_num]**2
-                        value_to_add /= distance_weight
-                        distance_weights += distance_weight
+                        if distance_weight != 0:
+                            value_to_add = value_to_add / distance_weight
+                            distance_weights += 1 /distance_weight
+
 
                     regression_value += value_to_add
 
