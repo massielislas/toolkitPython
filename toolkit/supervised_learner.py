@@ -68,7 +68,7 @@ class SupervisedLearner:
     def calc_mse(self, features, labels):
         self.check_shape(features, labels)
         feat = features
-        targ = labels
+        targ = labels.data
         pred = np.asarray(self.predict_all(feat))
         delta = targ - pred
         sse = np.sum(delta**2)

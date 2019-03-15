@@ -25,6 +25,7 @@ class InstanceBasedLearner(SupervisedLearner):
 
         if labels.unique_value_count(0) == 0:
             self.continuous_output = True
+            print('SETTING CONTINUOUS OUTPUT TO TRUE')
 
 
     def predict_all(self, features):
@@ -85,6 +86,7 @@ class InstanceBasedLearner(SupervisedLearner):
                 predictions_list += [prediction]
 
             elif self.continuous_output is True:
+                # print('CALCULATING FOR CONTINUOUS OUTPUT')
                 regression_value = 0
                 distance_weights = 1
                 for label_num, label in enumerate(closest_labels):
@@ -101,7 +103,8 @@ class InstanceBasedLearner(SupervisedLearner):
                 else:
                     regression_value /= len(closest_labels)
 
-                predictions_list += regression_value
+
+                predictions_list += [regression_value]
 
             # print('VOTES AFTER', votes)
 
@@ -111,8 +114,13 @@ class InstanceBasedLearner(SupervisedLearner):
 
 
         # print(np.bincount(x).argmax())
+        # print(predictions_list)
         predictions = np.asarray(predictions_list, dtype=np.float64)
         predictions_return = predictions.reshape(-1, 1)
+        # print('TRANSFORMED', predictions)
+        # print(self.labels.data)
+        print('DATA LENGTH', len(self.labels.data))
+        print('LIST LENGTH', len(predictions_list))
         return predictions_return
 
 
