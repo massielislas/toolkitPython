@@ -31,11 +31,8 @@ class InstanceBasedLearner(SupervisedLearner):
         """
         :type features: Arff
         """
-        most_common_label = self.labels.most_common_value(0)
 
         predictions_list = []
-
-        closes_indices = []
 
         # print('BEFORE', self.features.data)
 
@@ -103,6 +100,8 @@ class InstanceBasedLearner(SupervisedLearner):
                     regression_value /= distance_weights
                 else:
                     regression_value /= len(closest_labels)
+
+                predictions_list += regression_value
 
             # print('VOTES AFTER', votes)
 
