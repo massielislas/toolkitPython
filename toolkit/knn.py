@@ -4,7 +4,7 @@ from arff import Arff
 
 import numpy as np
 import operator
-import sys
+import copy as cp
 
 
 class InstanceBasedLearner(SupervisedLearner):
@@ -14,6 +14,7 @@ class InstanceBasedLearner(SupervisedLearner):
     k = 3
     distance_weighting = False
     continuous_output = False
+    possible_missing_values = False
 
     def __init__(self, data=None, example_hyperparameter=None):
         pass
@@ -23,15 +24,32 @@ class InstanceBasedLearner(SupervisedLearner):
         self.labels = labels
         self.features = features
 
+
         if labels.unique_value_count(0) == 0:
             self.continuous_output = True
-            print('SETTING CONTINUOUS OUTPUT TO TRUE')
+            # print('SETTING CONTINUOUS OUTPUT TO TRUE')
 
 
     def predict_all(self, features):
         """
         :type features: Arff
         """
+
+
+
+        if self.possible_missing_values is True:
+            for row_num, row in enumerate(features.data):
+                for col_num, col in enumerate(row):
+                    if features.is_missing(col):
+                        print('MISSING')
+                        unique_value_count = features.unique_value_count(col_num)
+
+                        if unique_value_count == 0:
+                            features.data[row_num, col_num] = np.mean(features, axis=0)[col_num]
+
+                        else:
+                            features.data[row_num, col_num] = unique_value_count
+
 
         predictions_list = []
 
@@ -48,12 +66,16 @@ class InstanceBasedLearner(SupervisedLearner):
 
             squared = np.square(subtracted)
             # print('SQUARED', squared)
+            nan_places = np.isnan(squared)
+            squared[nan_places] = 1
+
+            # print('SQUARED REPLACED', squared)
 
             summed = np.sum(squared, axis=1)
             # print('SUMMED', summed)
 
             closest_distances = np.sqrt(summed)
-            # print('DISTANCES', distances)
+            # print('DISTANCES', closest_distances)
 
             sorted_smallest = np.argpartition(closest_distances, self.k+1)
             # print('SORTED SMALLEST', sorted_smallest)
@@ -102,7 +124,6 @@ class InstanceBasedLearner(SupervisedLearner):
                     regression_value /= distance_weights
                 else:
                     regression_value /= len(closest_labels)
-
 
                 predictions_list += [regression_value]
 
