@@ -11,7 +11,7 @@ class InstanceBasedLearner(SupervisedLearner):
 
     labels = None
     features = None
-    k = 3
+    k = 15
     distance_weighting = True
     continuous_output = False
     possible_missing_values = False
@@ -33,39 +33,58 @@ class InstanceBasedLearner(SupervisedLearner):
             self.continuous_output = True
             # print('SETTING CONTINUOUS OUTPUT TO TRUE')
 
+        print('!!! K !!!', self.k)
+
     def reduction(self, features, labels):
         """
         :type features: Arff
         :type labels: Arff
         """
 
-        old_features = self.features
-        old_labels = self.labels
+        # old_features = cp.deepcopy(self.features)
+        # old_labels = cp.deepcopy(self.labels)
         old_accuracy = -1
-        new_accuracy = 0
+        new_accuracy = 100
+        counter = 0
 
-        while new_accuracy > old_accuracy:
+        predictions = self.predict_all(features)
+        baseline_accuracy = self.calculate_accuracy(predictions, labels)
+        print('BASELINE ACCURACY', baseline_accuracy)
 
-            old_accuracy = new_accuracy
-            old_features = self.features
-            old_labels = self.labels
+        while new_accuracy > baseline_accuracy - 1:
+            print('REPLACE', counter)
 
-            rows_to_keep = [i + 1 for i in range(len(features.data) - 1)]
-            columns_to_keep = slice(features.data[0].size)
-            new_features = features.create_subset_arff(rows_to_keep, columns_to_keep, 0)
-            columns_to_keep_labels = slice(labels.data[0].size)
-            new_labels = labels.create_subset_arff(rows_to_keep, columns_to_keep_labels, 0)
+            self.features.shuffle(self.labels)
+            features.shuffle(labels)
 
-            self.labels = new_labels
-            self.features = new_features
+            # old_accuracy = new_accuracy
+            old_features = cp.deepcopy(self.features)
+            old_labels = cp.deepcopy(self.labels)
 
-            predictions = self.predict_all(features=features)
-            new_accuracy = self.calculate_accuracy(predictions, self.labels)
+            old_features.shuffle(old_labels)
+
+            rows_to_keep = [i for i in range(len(old_features.data) - 1)]
+            # print('ROWS TO KEEP', rows_to_keep)
+            columns_to_keep = slice(old_features.data[0].size)
+            new_features = old_features.create_subset_arff(rows_to_keep, columns_to_keep, 0)
+            columns_to_keep_labels = slice(old_labels.data[0].size)
+            new_labels = old_labels.create_subset_arff(rows_to_keep, columns_to_keep_labels, 0)
+
+            self.labels = cp.deepcopy(new_labels)
+            self.features = cp.deepcopy(new_features)
+
+            predictions = self.predict_all(features)
+            new_accuracy = self.calculate_accuracy(predictions, labels)
 
             print('ACCURACY', new_accuracy)
+            counter += 1
 
-        self.features = old_features
-        self.labels = old_labels
+        self.features = cp.deepcopy(old_features)
+        self.labels = cp.deepcopy(old_labels)
+        print('DONE REPLACING')
+
+        # predictions = self.predict_all(features)
+        # new_accuracy = self.calculate_accuracy(predictions, labels)
 
 
     def calculate_accuracy(self, predictions, labels):
@@ -150,7 +169,10 @@ class InstanceBasedLearner(SupervisedLearner):
 
                 for label_num, label in enumerate(closest_labels):
                     if self.distance_weighting is True:
-                        vote = 1 / closest_distances[label_num]**2
+                        if closest_distances[label_num]**2 != 0:
+                            vote = 1 / closest_distances[label_num]**2
+                        else:
+                            vote = 1
 
                     else:
                         vote = 1
@@ -171,7 +193,6 @@ class InstanceBasedLearner(SupervisedLearner):
                         if distance_weight != 0:
                             value_to_add = value_to_add / distance_weight
                             distance_weights += 1 /distance_weight
-
 
                     regression_value += value_to_add
 
@@ -210,4 +231,12 @@ class InstanceBasedLearner(SupervisedLearner):
 
         else:
             print('YOU NEED TO IMPLEMENT ANOTHER TYPE')
+
+    def normalize(self, arff):
+        """Normalize each column of continuous values"""
+        for i in range(arff.shape[1]):
+            if arff.unique_value_count(i) == 0:  # is continuous
+                min_val = arff.column_min(i)
+                max_val = arff.column_max(i)
+                arff.data[:, i] = (arff.data[:, i] - min_val) / (max_val - min_val)
 

@@ -346,7 +346,7 @@ class Arff:
 
     def normalize(self):
         """Normalize each column of continuous values"""
-        for i in range(self.shape[1]):
+        for i in range(self.shape[1] - 1):
             if self.unique_value_count(i) == 0:  # is continuous
                 min_val = self.column_min(i)
                 max_val = self.column_max(i)
