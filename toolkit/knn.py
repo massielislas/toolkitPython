@@ -11,11 +11,11 @@ class InstanceBasedLearner(SupervisedLearner):
 
     labels = None
     features = None
-    k = 15
-    distance_weighting = True
+    k = 13
+    distance_weighting = False
     continuous_output = False
     possible_missing_values = False
-    experiment = False
+    experiment = True
 
     def __init__(self, data=None, example_hyperparameter=None):
         pass
