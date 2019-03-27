@@ -18,7 +18,7 @@ class ClusterBasedLearner(SupervisedLearner):
     features = None
     HAC = True
     single_link = True
-    cluster_to_make = 1
+    clusters_to_make = 1
 
     def __init__(self, data=None, example_hyperparameter=None):
         """ Example learner initialization. Any additional variables passed to the Session will be passed on to the learner,
@@ -89,66 +89,49 @@ class ClusterBasedLearner(SupervisedLearner):
             # self.original_matrix.shape()
             # np.infinity
 
-            lowest_coordinates = np.unravel_index(self.original_matrix.argmin(), self.original_matrix.shape)
-
-            print(lowest_coordinates[0])
-            print(lowest_coordinates[1])
-
-
-
             changing_matrix = cp.deepcopy(self.original_matrix)
 
-            # changing_matrix = cp.deepcopy(self.original_matrix[0:len(changing_matrix) - 1, 0:len(changing_matrix[0])])
+            while len(changing_matrix) != self.clusters_to_make:
 
-            # changing_matrix = cp.deepcopy(changing_matrix[])
+                lowest_coordinates = np.unravel_index(changing_matrix.argmin(), changing_matrix.shape)
 
-            indices = np.arange(len(changing_matrix))
-            #
-            # print("INDICES BEFORE", indices)
-            #
-            # mask = np.ones(len(changing_matrix), dtype=bool)
-            # mask[[lowest_coordinates[0], lowest_coordinates[1]]] = False
-            # indices = indices[mask]
-            #
-            # print("INDICES", indices)
+                print("LOWEST COORDINATES")
+                print(lowest_coordinates[0])
+                print(lowest_coordinates[1])
 
-            new_matrix = np.delete(changing_matrix, lowest_coordinates[1], axis=1)
-            new_matrix = np.delete(new_matrix, lowest_coordinates[1], axis=0)
+                new_matrix = np.delete(changing_matrix, lowest_coordinates[1], axis=1)
+                new_matrix = np.delete(new_matrix, lowest_coordinates[1], axis=0)
 
-            print("CHANGING MATRIX")
-            print(changing_matrix)
+                print("CHANGING MATRIX")
+                print(changing_matrix)
 
-            print("NEW MATRIX")
-            print(new_matrix)
+                print("NEW MATRIX")
+                print(new_matrix)
+                for col_n in range(len(new_matrix[lowest_coordinates[0]])):
 
-            for col_n in range(len(new_matrix[lowest_coordinates[0]])):
+                    # print("COLUMN NUMBER", col_n)
 
-                print("COLUMN NUMBER", col_n)
+                    if col_n == lowest_coordinates[0]:
+                        list_for_minimum = [np.Infinity, np.Infinity]
+                        # print("DIAGONAL")
 
-                if col_n == lowest_coordinates[0]:
-                    list_for_minumum = [np.Infinity, np.Infinity]
-                    print("DIAGONAL")
+                    elif col_n < lowest_coordinates[1]:
+                        list_for_minimum = [changing_matrix[lowest_coordinates[0]][col_n], changing_matrix[lowest_coordinates[1]][col_n]]
+                        # print("LIST FOR MINIMUM", list_for_minimum)
 
-                elif col_n < lowest_coordinates[1]:
-                    list_for_minumum = [changing_matrix[lowest_coordinates[0]][col_n], changing_matrix[lowest_coordinates[1]][col_n]]
-                    print("LIST FOR MINIMUM", list_for_minumum)
+                    elif col_n >= lowest_coordinates[1]:
+                        list_for_minimum = [changing_matrix[lowest_coordinates[0]][col_n + 1], changing_matrix[lowest_coordinates[1]][col_n + 1]]
+                        # print("COLUMN SWITCH")
+                        # print("LIST FOR MINIMUM", list_for_minimum)
 
-                elif col_n >= lowest_coordinates[1]:
-                    list_for_minumum = [changing_matrix[lowest_coordinates[0]][col_n + 1], changing_matrix[lowest_coordinates[1]][col_n + 1]]
-                    print("COLUMN SWITCH")
-                    print("LIST FOR MINIMUM", list_for_minumum)
+                    minimum = min(list_for_minimum)
+                    new_matrix[lowest_coordinates[0]][col_n] = minimum
+                    new_matrix[col_n][lowest_coordinates[0]] = minimum
+                    # print("MINIMUM", new_matrix[lowest_coordinates[0]][col_n])
 
-                minumum = min(list_for_minumum)
-                new_matrix[lowest_coordinates[0]][col_n] = minumum
-                new_matrix[col_n][lowest_coordinates[0]] = minumum
-                print("MINIMUM", new_matrix[lowest_coordinates[0]][col_n])
-
-
-
-
-            changing_matrix = cp.deepcopy(new_matrix)
-            print("CHANGING MATRIX")
-            print(changing_matrix)
+                changing_matrix = cp.deepcopy(new_matrix)
+                print("REDUCED MATRIX")
+                print(changing_matrix)
 
 
             # go through row at lowest_coordinates[0]
