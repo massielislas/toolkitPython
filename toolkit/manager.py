@@ -4,6 +4,7 @@ from supervised_learner import SupervisedLearner
 from baseline_learner import BaselineLearner
 from decision_tree import DecisionTreeLearner
 from knn import InstanceBasedLearner
+from cluster import ClusterBasedLearner
 from arff import Arff
 import random
 import argparse
@@ -80,7 +81,8 @@ class MLSystemManager:
             # "perceptron": PerceptronLearner,
             # "mlp": MultilayerPerceptronLearner,
             "decisiontree": DecisionTreeLearner,
-            "knn": InstanceBasedLearner
+            "knn": InstanceBasedLearner,
+            "cluster": ClusterBasedLearner
         }
 
         if model in modelmap:
@@ -95,7 +97,7 @@ class MLSystemManager:
         parser.add_argument('-V', '--verbose', action='store_true', help='Print the confusion matrix and learner accuracy on individual class values')
         parser.add_argument('-N', '--normalize', action='store_true', help='Use normalized data')
         parser.add_argument('-R', '--seed', help="Random seed") # will give a string
-        parser.add_argument('-L', required=True, choices=['baseline', 'perceptron', 'mlp', 'decisiontree', 'knn'], help='Learning Algorithm')
+        parser.add_argument('-L', required=True, choices=['baseline', 'perceptron', 'mlp', 'decisiontree', 'knn', 'cluster'], help='Learning Algorithm')
         parser.add_argument('-A', '--arff', metavar='filename', required=True, help='ARFF file')
         parser.add_argument('-E', metavar=('METHOD', 'args'), required=True, nargs='+', help="Evaluation method (training | static <test_ARFF_file> | random <%%_for_training> | cross <num_folds>)")
         return parser
