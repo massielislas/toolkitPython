@@ -112,13 +112,48 @@ class ClusterBasedLearner(SupervisedLearner):
             #
             # print("INDICES", indices)
 
-            changing_matrix = np.delete(changing_matrix, lowest_coordinates[0], axis=0)
-            changing_matrix = np.delete(changing_matrix, lowest_coordinates[0], axis=1)
+            new_matrix = np.delete(changing_matrix, lowest_coordinates[1], axis=1)
+            new_matrix = np.delete(new_matrix, lowest_coordinates[1], axis=0)
 
             print("CHANGING MATRIX")
             print(changing_matrix)
 
-            # while len(changing_matrix) != self.cluster_to_make:
+            print("NEW MATRIX")
+            print(new_matrix)
+
+            for col_n in range(len(new_matrix[lowest_coordinates[0]])):
+
+                print("COLUMN NUMBER", col_n)
+
+                if col_n == lowest_coordinates[0]:
+                    list_for_minumum = [np.Infinity, np.Infinity]
+                    print("DIAGONAL")
+
+                elif col_n < lowest_coordinates[1]:
+                    list_for_minumum = [changing_matrix[lowest_coordinates[0]][col_n], changing_matrix[lowest_coordinates[1]][col_n]]
+                    print("LIST FOR MINIMUM", list_for_minumum)
+
+                elif col_n >= lowest_coordinates[1]:
+                    list_for_minumum = [changing_matrix[lowest_coordinates[0]][col_n + 1], changing_matrix[lowest_coordinates[1]][col_n + 1]]
+                    print("COLUMN SWITCH")
+                    print("LIST FOR MINIMUM", list_for_minumum)
+
+                minumum = min(list_for_minumum)
+                new_matrix[lowest_coordinates[0]][col_n] = minumum
+                new_matrix[col_n][lowest_coordinates[0]] = minumum
+                print("MINIMUM", new_matrix[lowest_coordinates[0]][col_n])
+
+
+
+
+            changing_matrix = cp.deepcopy(new_matrix)
+            print("CHANGING MATRIX")
+            print(changing_matrix)
+
+
+            # go through row at lowest_coordinates[0]
+
+            # TODO while len(changing_matrix) != self.cluster_to_make:
 
 
 
