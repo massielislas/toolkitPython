@@ -38,6 +38,16 @@ class ClusterBasedLearner(SupervisedLearner):
 
     def train(self, features, labels):
         """
+        :type features: Arff
+        :type labels: Arff
+        """
+        categorical_columns = []
+
+        for col_n in range(len(features.data[0])):
+            print("COLUMN", col_n)
+            if features.unique_value_count(col_n) != 0:
+                categorical_columns += [col_n]
+        """
         This function should loop through the data and create/update a ML model until some stopping criteria is reached
         Args:
             features (Arff): 2D array of feature values (all instances)
@@ -65,6 +75,11 @@ class ClusterBasedLearner(SupervisedLearner):
             for examining_row_n, examining_row in enumerate(features.data):
                 subtracted = np.subtract(self.features.data, examining_row)
 
+                for col in categorical_columns:
+                    # >>> test[:,0]
+                    # array([1, 3, 5])
+                    np.place(subtracted[:, col], subtracted[:, col] != 0, [1])
+
                 squared = np.square(subtracted)
                 nan_places = np.isnan(squared)
                 squared[nan_places] = 1
@@ -80,20 +95,18 @@ class ClusterBasedLearner(SupervisedLearner):
                 print()
                 self.original_matrix[examining_row_n] = distances
 
-            # print("LENGTH OF DATA ", data_n)
 
             print("CALCULATED MATRIX")
             print(self.original_matrix)
 
-            # self.original_matrix.argmin()
-            # self.original_matrix.shape()
-            # np.infinity
 
             changing_matrix = cp.deepcopy(self.original_matrix)
 
             while len(changing_matrix) != self.clusters_to_make:
 
                 lowest_coordinates = np.unravel_index(changing_matrix.argmin(), changing_matrix.shape)
+
+                print(lowest_coordinates)
 
                 print("LOWEST COORDINATES")
                 print(lowest_coordinates[0])
@@ -132,12 +145,6 @@ class ClusterBasedLearner(SupervisedLearner):
                 changing_matrix = cp.deepcopy(new_matrix)
                 print("REDUCED MATRIX")
                 print(changing_matrix)
-
-
-            # go through row at lowest_coordinates[0]
-
-            # TODO while len(changing_matrix) != self.cluster_to_make:
-
 
 
             self.average_label = []
