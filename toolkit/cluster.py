@@ -17,12 +17,12 @@ class ClusterBasedLearner(SupervisedLearner):
     original_matrix = None
     features = None
     HAC = True
-    single_link = True
+    single_link = False
     clusters_to_make = 4
     clusters = []
     centroids = []
     clusters_sse = []
-    complete_link = True
+    # complete_link = False
 
     def __init__(self, data=None, example_hyperparameter=None):
         """ Example learner initialization. Any additional variables passed to the Session will be passed on to the learner,
@@ -156,9 +156,15 @@ class ClusterBasedLearner(SupervisedLearner):
                         # print("COLUMN SWITCH")
                         # print("LIST FOR MINIMUM", list_for_replacement)
 
-                    minimum = min(list_for_replacement)
-                    new_matrix[lowest_coordinates[0]][col_n] = minimum
-                    new_matrix[col_n][lowest_coordinates[0]] = minimum
+                    if self.single_link is True:
+                        replace_with = min(list_for_replacement)
+
+                    else:
+                        replace_with = max(list_for_replacement)
+
+                    new_matrix[lowest_coordinates[0]][col_n] = replace_with
+                    new_matrix[col_n][lowest_coordinates[0]] = replace_with
+
                     # print("MINIMUM", new_matrix[lowest_coordinates[0]][col_n])
 
                 changing_matrix = cp.deepcopy(new_matrix)
