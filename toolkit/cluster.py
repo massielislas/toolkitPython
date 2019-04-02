@@ -18,7 +18,10 @@ class ClusterBasedLearner(SupervisedLearner):
     features = None
     HAC = True
     single_link = True
-    clusters_to_make = 1
+    clusters_to_make = 3
+    clusters = []
+    centroids = []
+    clusters_sse = []
 
     def __init__(self, data=None, example_hyperparameter=None):
         """ Example learner initialization. Any additional variables passed to the Session will be passed on to the learner,
@@ -44,9 +47,15 @@ class ClusterBasedLearner(SupervisedLearner):
         categorical_columns = []
 
         for col_n in range(len(features.data[0])):
-            print("COLUMN", col_n)
+            # print("COLUMN", col_n)
             if features.unique_value_count(col_n) != 0:
                 categorical_columns += [col_n]
+
+        self.clusters = np.arange(len(features.data))
+
+        self.clusters = [[i] for i in range(len(features.data))]
+
+        # print("CLUSTERS ", self.clusters)
         """
         This function should loop through the data and create/update a ML model until some stopping criteria is reached
         Args:
@@ -59,7 +68,7 @@ class ClusterBasedLearner(SupervisedLearner):
 
         # np.zeros((len(vals)))
 
-        print("DATA_N ", data_n)
+        # print("DATA_N ", data_n)
 
         # print(np.zeros(data_n))
 
@@ -67,9 +76,9 @@ class ClusterBasedLearner(SupervisedLearner):
 
             self.original_matrix = np.zeros((data_n, data_n))
 
-            print(self.original_matrix)
+            # print(self.original_matrix)
 
-            print("DATA", features.data)
+            # print("DATA", features.data)
 
             # calculating original matrix with distances between points
             for examining_row_n, examining_row in enumerate(features.data):
@@ -90,27 +99,35 @@ class ClusterBasedLearner(SupervisedLearner):
 
                 distances[examining_row_n] = np.Infinity
 
-                print("DISTANCES")
-                print(distances)
-                print()
+                # print("DISTANCES")
+                # print(distances)
+                # print()
                 self.original_matrix[examining_row_n] = distances
 
 
-            print("CALCULATED MATRIX")
-            print(self.original_matrix)
-
+            # print("CALCULATED MATRIX")
+            # print(self.original_matrix)
 
             changing_matrix = cp.deepcopy(self.original_matrix)
+
+            # print("CLUSTERS", self.clusters)
 
             while len(changing_matrix) != self.clusters_to_make:
 
                 lowest_coordinates = np.unravel_index(changing_matrix.argmin(), changing_matrix.shape)
 
-                print(lowest_coordinates)
+                # KEEPING TRACK OF CLUSTERS
+                self.clusters[lowest_coordinates[0]] += self.clusters[lowest_coordinates[1]]
+                del self.clusters[lowest_coordinates[1]]
+                # del a[1]
 
-                print("LOWEST COORDINATES")
-                print(lowest_coordinates[0])
-                print(lowest_coordinates[1])
+                # print("CLUSTERS", self.clusters)
+
+                # print(lowest_coordinates)
+
+                # print("LOWEST COORDINATES")
+                # print(lowest_coordinates[0])
+                # print(lowest_coordinates[1])
 
                 new_matrix = np.delete(changing_matrix, lowest_coordinates[1], axis=1)
                 new_matrix = np.delete(new_matrix, lowest_coordinates[1], axis=0)
@@ -118,8 +135,8 @@ class ClusterBasedLearner(SupervisedLearner):
                 print("CHANGING MATRIX")
                 print(changing_matrix)
 
-                print("NEW MATRIX")
-                print(new_matrix)
+                # print("NEW MATRIX")
+                # print(new_matrix)
                 for col_n in range(len(new_matrix[lowest_coordinates[0]])):
 
                     # print("COLUMN NUMBER", col_n)
@@ -143,9 +160,8 @@ class ClusterBasedLearner(SupervisedLearner):
                     # print("MINIMUM", new_matrix[lowest_coordinates[0]][col_n])
 
                 changing_matrix = cp.deepcopy(new_matrix)
-                print("REDUCED MATRIX")
-                print(changing_matrix)
-
+                # print("REDUCED MATRIX")
+                # print(changing_matrix)
 
             self.average_label = []
             for i in range(labels.shape[1]): # for each label column
@@ -153,6 +169,10 @@ class ClusterBasedLearner(SupervisedLearner):
                     self.average_label += [labels.most_common_value(0)]    # nominal
                 else:
                     self.average_label += [labels.column_mean(0)]  # continuous
+
+        self.calculate_centroids()
+
+        self.calculate_cluster_SSE()
 
     def predict_all(self, features):
         """ Make a prediction for each instance in dataset
@@ -164,3 +184,50 @@ class ClusterBasedLearner(SupervisedLearner):
         pred = np.tile(self.average_label, features.shape[0]) # make a 1D vector of predictions, 1 for each instance
         return pred.reshape(-1,1) # reshape this so it is the correct shape = instances, # of output classes
 
+
+    def calculate_centroids(self):
+
+        # print("CALCULATING CENTROIDS")
+
+        # print("CLUSTERS: ", self.clusters)
+
+        self.centroids = []
+        # print("CENTROIDS BEFORE", self.centroids)
+
+        for cluster in self.clusters:
+            centroid = np.zeros(len(self.features.data[0]))
+            # print("CENTROIDS IN LOOP", self.centroids)
+            print()
+            # print("NEW CLUSTER")
+            for data_point_n in cluster:
+                # print("CENTROID", centroid)
+                # print("DATA POINT IN CLUSTER", self.features.data[data_point_n])
+                centroid = np.add(centroid, self.features.data[data_point_n])
+            centroid = np.divide(centroid, len(cluster))
+            self.centroids += [cp.deepcopy(centroid)]
+
+        print("CENTROIDS", self.centroids)
+
+        # print("TEST", self.centroids[0][0])
+
+
+    def calculate_cluster_SSE(self):
+        for cluster_n, cluster in enumerate(self.clusters):
+            cluster_sse = 0
+            for data_point in cluster:
+                centroid = self.centroids[cluster_n]
+                subtracted = np.subtract(centroid, self.features.data[data_point])
+                squared = np.square(subtracted)
+                summed = np.sum(squared)
+                distance = np.sqrt(summed)
+                print("DISTANCE", distance)
+                # pass
+
+
+# squared = np.square(subtracted)
+#                 nan_places = np.isnan(squared)
+#                 squared[nan_places] = 1
+#
+#                 summed = np.sum(squared, axis=1)
+#
+#                 distances = np.sqrt(summed)
