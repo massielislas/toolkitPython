@@ -17,11 +17,13 @@ class ClusterBasedLearner(SupervisedLearner):
     original_matrix = None
     features = None
     HAC = True
-    single_link = False
-    clusters_to_make = 4
+    single_link = True
+    clusters_to_make = 3
     clusters = []
     centroids = []
     clusters_sse = []
+    total_sse = 0
+
     # complete_link = False
 
     def __init__(self, data=None, example_hyperparameter=None):
@@ -184,9 +186,12 @@ class ClusterBasedLearner(SupervisedLearner):
                     self.average_label += [labels.column_mean(0)]  # continuous
 
 
-        self.calculate_centroids()
+        print()
+        print("CLUSTERS")
+        print(self.clusters)
+        print("\n\n")
 
-        self.calculate_cluster_SSE()
+        self.calculate_errors()
 
     def predict_all(self, features):
         """ Make a prediction for each instance in dataset
@@ -198,6 +203,14 @@ class ClusterBasedLearner(SupervisedLearner):
         pred = np.tile(self.average_label, features.shape[0]) # make a 1D vector of predictions, 1 for each instance
         return pred.reshape(-1,1) # reshape this so it is the correct shape = instances, # of output classes
 
+    def calculate_errors(self):
+        self.centroids = []
+        self.clusters_sse = []
+        self.total_sse = 0
+        self.calculate_centroids()
+        self.calculate_clusters_SSEs()
+        self.calculate_clustering_SSE()
+
 
     def calculate_centroids(self):
 
@@ -208,6 +221,8 @@ class ClusterBasedLearner(SupervisedLearner):
         self.centroids = []
         # print("CENTROIDS BEFORE", self.centroids)
 
+        print("CENTROIDS")
+
         for cluster in self.clusters:
             centroid = np.zeros(len(self.features.data[0]))
             # print("CENTROIDS IN LOOP", self.centroids)
@@ -216,15 +231,19 @@ class ClusterBasedLearner(SupervisedLearner):
             for data_point_n in cluster:
                 # print("CENTROID", centroid)
                 # print("DATA POINT IN CLUSTER", self.features.data[data_point_n])
-                centroid = np.add(centroid, self.features.data[data_point_n])
+                to_add = cp.deepcopy(self.features.data[data_point_n])
+                nan_places = np.isnan(to_add)
+                to_add[nan_places] = 0
+                # print(to_add)
+                centroid = np.add(centroid, to_add)
             centroid = np.divide(centroid, len(cluster))
             self.centroids += [cp.deepcopy(centroid)]
+            print(centroid)
 
-        print("CENTROIDS", self.centroids)
         # print("TEST", self.centroids[0][0])
 
 
-    def calculate_cluster_SSE(self):
+    def calculate_clusters_SSEs(self):
         for cluster_n, cluster in enumerate(self.clusters):
             cluster_sse = 0
             for data_point in cluster:
@@ -233,8 +252,13 @@ class ClusterBasedLearner(SupervisedLearner):
 
                 squared = np.square(subtracted)
                 # print('SQUARED', squared)
+                # print("SQUARED B")
+                # print(squared)
                 nan_places = np.isnan(squared)
                 squared[nan_places] = 1
+                # print("SQUARED A")
+                # print(squared)
+                # print()
                 # squared = np.square(subtracted)
                 summed = np.sum(squared)
                 # distance = np.sqrt(summed)
@@ -248,6 +272,12 @@ class ClusterBasedLearner(SupervisedLearner):
         print("CLUSTERS SSE", self.clusters_sse)
 
                 # pass
+
+    def calculate_clustering_SSE(self):
+        for sse in self.clusters_sse:
+            self.total_sse += sse
+
+        print("TOTAL SSE", self.total_sse)
 
 
 # squared = np.square(subtracted)
