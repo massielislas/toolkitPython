@@ -219,8 +219,16 @@ class ClusterBasedLearner(SupervisedLearner):
                 subtracted = np.subtract(centroid, self.features.data[data_point])
                 squared = np.square(subtracted)
                 summed = np.sum(squared)
-                distance = np.sqrt(summed)
-                print("DISTANCE", distance)
+                # distance = np.sqrt(summed)
+                # print("DISTANCE", distance)
+
+                cluster_sse += summed
+
+            print("CLUSTER SSE", cluster_sse)
+            self.clusters_sse += [cluster_sse]
+
+        print("CLUSTERS SSE", self.clusters_sse)
+
                 # pass
 
 
