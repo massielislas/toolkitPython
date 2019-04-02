@@ -18,10 +18,11 @@ class ClusterBasedLearner(SupervisedLearner):
     features = None
     HAC = True
     single_link = True
-    clusters_to_make = 3
+    clusters_to_make = 4
     clusters = []
     centroids = []
     clusters_sse = []
+    complete_link = True
 
     def __init__(self, data=None, example_hyperparameter=None):
         """ Example learner initialization. Any additional variables passed to the Session will be passed on to the learner,
@@ -116,6 +117,9 @@ class ClusterBasedLearner(SupervisedLearner):
 
                 lowest_coordinates = np.unravel_index(changing_matrix.argmin(), changing_matrix.shape)
 
+                print("LOWEST COORDINATES", lowest_coordinates)
+                print("DISTANCE", changing_matrix[lowest_coordinates[0]][lowest_coordinates[1]])
+
                 # KEEPING TRACK OF CLUSTERS
                 self.clusters[lowest_coordinates[0]] += self.clusters[lowest_coordinates[1]]
                 del self.clusters[lowest_coordinates[1]]
@@ -124,16 +128,14 @@ class ClusterBasedLearner(SupervisedLearner):
                 # print("CLUSTERS", self.clusters)
 
                 # print(lowest_coordinates)
-
-                # print("LOWEST COORDINATES")
                 # print(lowest_coordinates[0])
                 # print(lowest_coordinates[1])
 
                 new_matrix = np.delete(changing_matrix, lowest_coordinates[1], axis=1)
                 new_matrix = np.delete(new_matrix, lowest_coordinates[1], axis=0)
 
-                print("CHANGING MATRIX")
-                print(changing_matrix)
+                # print("CHANGING MATRIX")
+                # print(changing_matrix)
 
                 # print("NEW MATRIX")
                 # print(new_matrix)
@@ -142,19 +144,19 @@ class ClusterBasedLearner(SupervisedLearner):
                     # print("COLUMN NUMBER", col_n)
 
                     if col_n == lowest_coordinates[0]:
-                        list_for_minimum = [np.Infinity, np.Infinity]
+                        list_for_replacement = [np.Infinity, np.Infinity]
                         # print("DIAGONAL")
 
                     elif col_n < lowest_coordinates[1]:
-                        list_for_minimum = [changing_matrix[lowest_coordinates[0]][col_n], changing_matrix[lowest_coordinates[1]][col_n]]
-                        # print("LIST FOR MINIMUM", list_for_minimum)
+                        list_for_replacement = [changing_matrix[lowest_coordinates[0]][col_n], changing_matrix[lowest_coordinates[1]][col_n]]
+                        # print("LIST FOR MINIMUM", list_for_replacement)
 
                     elif col_n >= lowest_coordinates[1]:
-                        list_for_minimum = [changing_matrix[lowest_coordinates[0]][col_n + 1], changing_matrix[lowest_coordinates[1]][col_n + 1]]
+                        list_for_replacement = [changing_matrix[lowest_coordinates[0]][col_n + 1], changing_matrix[lowest_coordinates[1]][col_n + 1]]
                         # print("COLUMN SWITCH")
-                        # print("LIST FOR MINIMUM", list_for_minimum)
+                        # print("LIST FOR MINIMUM", list_for_replacement)
 
-                    minimum = min(list_for_minimum)
+                    minimum = min(list_for_replacement)
                     new_matrix[lowest_coordinates[0]][col_n] = minimum
                     new_matrix[col_n][lowest_coordinates[0]] = minimum
                     # print("MINIMUM", new_matrix[lowest_coordinates[0]][col_n])
@@ -163,12 +165,18 @@ class ClusterBasedLearner(SupervisedLearner):
                 # print("REDUCED MATRIX")
                 # print(changing_matrix)
 
+                # print()
+                # print("CLUSTERS")
+                # print(self.clusters)
+                # print("\n\n")
+
             self.average_label = []
             for i in range(labels.shape[1]): # for each label column
                 if labels.is_nominal(i): # assumes 1D label
                     self.average_label += [labels.most_common_value(0)]    # nominal
                 else:
                     self.average_label += [labels.column_mean(0)]  # continuous
+
 
         self.calculate_centroids()
 
@@ -207,7 +215,6 @@ class ClusterBasedLearner(SupervisedLearner):
             self.centroids += [cp.deepcopy(centroid)]
 
         print("CENTROIDS", self.centroids)
-
         # print("TEST", self.centroids[0][0])
 
 
@@ -229,7 +236,7 @@ class ClusterBasedLearner(SupervisedLearner):
 
                 cluster_sse += summed
 
-            print("CLUSTER SSE", cluster_sse)
+            # print("CLUSTER SSE", cluster_sse)
             self.clusters_sse += [cluster_sse]
 
         print("CLUSTERS SSE", self.clusters_sse)
