@@ -217,7 +217,12 @@ class ClusterBasedLearner(SupervisedLearner):
             for data_point in cluster:
                 centroid = self.centroids[cluster_n]
                 subtracted = np.subtract(centroid, self.features.data[data_point])
+
                 squared = np.square(subtracted)
+                # print('SQUARED', squared)
+                nan_places = np.isnan(squared)
+                squared[nan_places] = 1
+                # squared = np.square(subtracted)
                 summed = np.sum(squared)
                 # distance = np.sqrt(summed)
                 # print("DISTANCE", distance)
