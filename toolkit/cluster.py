@@ -18,11 +18,15 @@ class ClusterBasedLearner(SupervisedLearner):
     features = None
     HAC = True
     single_link = True
-    clusters_to_make = 3
+    clusters_to_make = 1
     clusters = []
     centroids = []
     clusters_sse = []
     total_sse = 0
+    average_distance_between_nodes = 0
+    stop_clustering = False
+    experiment = True
+    all_distances = np.zeros(1)
 
     # complete_link = False
 
@@ -99,6 +103,10 @@ class ClusterBasedLearner(SupervisedLearner):
                 summed = np.sum(squared, axis=1)
 
                 distances = np.sqrt(summed)
+                print("DISTANCES", distances)
+
+                self.average_distance_between_nodes += np.sum(distances)
+                self.all_distances = np.append(self.all_distances, distances, axis=0)
 
                 distances[examining_row_n] = np.Infinity
 
@@ -106,10 +114,29 @@ class ClusterBasedLearner(SupervisedLearner):
                 # print(distances)
                 # print()
                 self.original_matrix[examining_row_n] = distances
+            # print(self.average_distance_between_nodes)
+            # print(len(self.original_matrix) * len(self.original_matrix[0]))
 
+            self.average_distance_between_nodes /= (len(self.original_matrix))**2
 
-            # print("CALCULATED MATRIX")
-            # print(self.original_matrix)
+            print("CALCULATED MATRIX")
+            print(self.original_matrix)
+            print("AVERAGE DISTANCE BETWEEN NODES", self.average_distance_between_nodes)
+            print("ALL DISTANCES", self.all_distances)
+
+            # REMOVE ZEROES
+
+                #             # print("DATA POINT IN CLUSTER", self.features.data[data_point_n])
+                # to_add = cp.deepcopy(self.features.data[data_point_n])
+                # nan_places = np.isnan(to_add)
+                # to_add[nan_places] = 0
+
+            non_zeroes = (self.all_distances != 0)
+
+            # print(non_zeroes)
+            self.all_distances = self.all_distances[non_zeroes]
+
+            print("AFTER NON ZERO", self.all_distances)
 
             changing_matrix = cp.deepcopy(self.original_matrix)
 
@@ -119,8 +146,13 @@ class ClusterBasedLearner(SupervisedLearner):
 
                 lowest_coordinates = np.unravel_index(changing_matrix.argmin(), changing_matrix.shape)
 
-                print("LOWEST COORDINATES", lowest_coordinates)
-                print("DISTANCE", changing_matrix[lowest_coordinates[0]][lowest_coordinates[1]])
+                # print("LOWEST COORDINATES", lowest_coordinates)
+                distance_found = changing_matrix[lowest_coordinates[0]][lowest_coordinates[1]]
+                if distance_found >= self.average_distance_between_nodes and self.experiment is True:
+                    self.stop_clustering = True
+                    break
+                print("DISTNACE FOUND", distance_found)
+                # print("DISTANCE", changing_matrix[lowest_coordinates[0]][lowest_coordinates[1]])
 
                 # KEEPING TRACK OF CLUSTERS
                 self.clusters[lowest_coordinates[0]] += self.clusters[lowest_coordinates[1]]
@@ -170,6 +202,9 @@ class ClusterBasedLearner(SupervisedLearner):
                     # print("MINIMUM", new_matrix[lowest_coordinates[0]][col_n])
 
                 changing_matrix = cp.deepcopy(new_matrix)
+
+                if self.stop_clustering is True:
+                    break
                 # print("REDUCED MATRIX")
                 # print(changing_matrix)
 
@@ -192,6 +227,14 @@ class ClusterBasedLearner(SupervisedLearner):
         print("\n\n")
 
         self.calculate_errors()
+        # self.all_distances = np.sort(self.all_distances)
+        print("FINAL DISTANCES SORTED", self.all_distances)
+
+        # list()
+
+#         >>> x = [1,2,3,2,2,2,3,4]
+# >>> list(filter(lambda a: a != 2, x))
+# [1, 3, 3, 4]
 
     def predict_all(self, features):
         """ Make a prediction for each instance in dataset
